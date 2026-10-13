@@ -406,7 +406,7 @@ def train(cfg: TrainConfig) -> str:
     if cfg.lora_targets:
         model_cfg.lora_targets = list(cfg.lora_targets)
     if cfg.init_from:
-        from .modeling import SlotHead
+        from strands_decider.modeling import SlotHead
 
         print(f"[strands-decider] loading torso + adapter from {cfg.init_from}")
         model = StrandsDeciderModel.load(cfg.init_from, attn_implementation=cfg.attn_implementation)
