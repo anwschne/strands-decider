@@ -63,6 +63,50 @@ jobs:
           files: coverage.xml
           fail_ci_if_error: false
 
+  mac:
+    # Apple-silicon runner: un-skips the MPS leg of tests/test_mps_kernels.py and the whole
+    # tests/test_mlx_engine.py module (both are gated on `platform.system() == "Darwin"` and
+    # the mlx extra, or `torch.backends.mps.is_available()`).
+    name: mac (py3.12)
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      HF_HUB_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ".[dev,mlx]"
+      - run: python -m pytest -q
+
+  cuda:
+    # Runs only when the repo/org variable GPU_RUNNER_LABEL is set to the label of a
+    # GitHub-hosted GPU larger runner provisioned by an enterprise admin (Settings → Actions
+    # → Runners → "New GitHub-hosted runner" → GPU-powered image). Leave the variable unset
+    # to keep this job dormant.
+    name: cuda (py3.12)
+    if: vars.GPU_RUNNER_LABEL != ''
+    runs-on: ${{ vars.GPU_RUNNER_LABEL }}
+    timeout-minutes: 45
+    env:
+      HF_HUB_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: nvidia-smi
+      # The default Linux torch wheel on PyPI ships bundled CUDA libraries, which is what we
+      # want on a GPU runner (unlike the CPU job above, which overrides the index).
+      - run: python -m pip install -e ".[dev,cuda]"
+      # Narrow to the CUDA-gated tests: the rest run in the cpu job and don't need GPU minutes.
+      - run: python -m pytest -q tests/test_gpu_smoke.py
+
   lint:
     name: lint
     runs-on: ubuntu-latest
