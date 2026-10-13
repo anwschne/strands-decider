@@ -25,7 +25,9 @@ defect that breaks threshold routing.
 from __future__ import annotations
 
 import hashlib
+import json
 import math
+import os
 import random
 from collections import defaultdict
 from dataclasses import dataclass
@@ -33,6 +35,9 @@ from typing import Any
 
 import torch
 import torch.nn.functional as F
+import typer
+from rich.console import Console
+from rich.table import Table
 from torch.utils.data import DataLoader
 
 from strands_decider.modeling import (
@@ -44,7 +49,7 @@ from strands_decider.modeling import (
 from strands_decider.schema import derive_confidence, derive_score_confidence
 
 from .data.collate import CollatorConfig, SystemOneCollator
-from .data.format import Example
+from .data.format import Example, read_jsonl
 from .train import ExampleDataset
 
 
@@ -471,102 +476,90 @@ def calibrate_checkpoint(
 # ---------------------------------------------------------------- CLI
 
 
-def _fmt_temperature(t) -> str:  # type: ignore[no-untyped-def]
+app = typer.Typer(help="Evaluate a checkpoint or fit its temperature.", no_args_is_help=True)
+console = Console()
+
+
+def _fmt_temperature(t: float | dict[str, float]) -> str:
     if isinstance(t, dict):
         return "{" + ", ".join(f"{k}:{v:.3f}" for k, v in sorted(t.items())) + "}"
     return f"{t:.3f}"
 
 
-def _main() -> None:
-    import json as _json
-    import os as _os
-
-    import typer
-    from rich.console import Console
-    from rich.table import Table
-
-    from strands_decider.schema import SystemOneResponse  # noqa: F401 -- re-export surface check
-
-    from .data.format import read_jsonl
-
-    app = typer.Typer(help="Evaluate a checkpoint or fit its temperature.", no_args_is_help=True)
-    console = Console()
-
-    @app.command("evaluate")
-    def evaluate_cmd(
-        checkpoint: str = typer.Argument(...),
-        data: str = typer.Option(..., "--data"),
-        limit: int = typer.Option(4000),
-        batch_size: int = typer.Option(16),
-        out: str | None = typer.Option(None, help="Write the full report as JSON."),
-        raw: bool = typer.Option(False, "--raw", help="Ignore the fitted temperature."),
-        split: str = typer.Option(
-            "test",
-            help="Half of --data to score: test|calib|all. Disjoint from `calibrate`.",
-        ),
-    ) -> None:
-        """Accuracy, ECE, NLL and score MAE, broken down by task and confidence band."""
-        examples = sample_examples(partition_examples(list(read_jsonl(data)), split), limit)
-        report = evaluate_checkpoint(
-            checkpoint, examples, batch_size=batch_size, apply_temperature=not raw
-        )
-        overall = report["overall"]
-        console.print(
-            f"[bold]overall[/] n={overall['n']:,} acc={overall['accuracy']:.3f} "
-            f"ece={overall['ece']:.3f} nll={overall['nll']:.3f} "
-            f"T={_fmt_temperature(report['temperature'])}"
-        )
-        for section in ("by_kind", "by_task", "by_confidence_band"):
-            rows = {k: v for k, v in report[section].items() if v}
-            if not rows:
-                continue
-            t = Table(title=section)
-            for col in ("group", "n", "accuracy", "ece", "mean conf"):
-                t.add_column(col, justify="right" if col != "group" else "left")
-            for name, m in rows.items():
-                t.add_row(
-                    name,
-                    f"{m['n']:,}",
-                    f"{m['accuracy']:.3f}",
-                    f"{m['ece']:.3f}",
-                    f"{m['mean_confidence']:.3f}",
-                )
-            console.print(t)
-        if out:
-            _os.makedirs(_os.path.dirname(_os.path.abspath(out)), exist_ok=True)
-            with open(out, "w", encoding="utf-8") as fh:
-                _json.dump(report, fh, indent=2)
-            console.print(f"[green]report -> {out}[/]")
-
-    @app.command("calibrate")
-    def calibrate_cmd(
-        checkpoint: str = typer.Argument(...),
-        data: str = typer.Option(..., "--data", help="Held-out JSONL for fitting temperature."),
-        limit: int = typer.Option(4000, help="Cap examples used."),
-        batch_size: int = typer.Option(16),
-        split: str = typer.Option(
-            "calib",
-            help="Half of --data to use: calib|test|all. Disjoint from `evaluate --split test`.",
-        ),
-    ) -> None:
-        """Fit a temperature on held-out data and write it into the checkpoint."""
-        examples = sample_examples(partition_examples(list(read_jsonl(data)), split), limit)
-        result = calibrate_checkpoint(checkpoint, examples, batch_size=batch_size)
-        console.print(f"[green]global temperature = {result['temperature']:.4f}[/]")
-        by_kind = result.get("temperature_by_kind") or {}
-        if by_kind:
-            console.print(
-                "[green]per-primitive[/] "
-                + ", ".join(f"{k}={v:.4f}" for k, v in sorted(by_kind.items()))
-                + "  (written to checkpoint)"
+@app.command("evaluate")
+def evaluate_cmd(
+    checkpoint: str = typer.Argument(...),
+    data: str = typer.Option(..., "--data"),
+    limit: int = typer.Option(4000),
+    batch_size: int = typer.Option(16),
+    out: str | None = typer.Option(None, help="Write the full report as JSON."),
+    raw: bool = typer.Option(False, "--raw", help="Ignore the fitted temperature."),
+    split: str = typer.Option(
+        "test",
+        help="Half of --data to score: test|calib|all. Disjoint from `calibrate`.",
+    ),
+) -> None:
+    """Accuracy, ECE, NLL and score MAE, broken down by task and confidence band."""
+    examples = sample_examples(partition_examples(list(read_jsonl(data)), split), limit)
+    report = evaluate_checkpoint(
+        checkpoint, examples, batch_size=batch_size, apply_temperature=not raw
+    )
+    overall = report["overall"]
+    console.print(
+        f"[bold]overall[/] n={overall['n']:,} acc={overall['accuracy']:.3f} "
+        f"ece={overall['ece']:.3f} nll={overall['nll']:.3f} "
+        f"T={_fmt_temperature(report['temperature'])}"
+    )
+    for section in ("by_kind", "by_task", "by_confidence_band"):
+        rows = {k: v for k, v in report[section].items() if v}
+        if not rows:
+            continue
+        t = Table(title=section)
+        for col in ("group", "n", "accuracy", "ece", "mean conf"):
+            t.add_column(col, justify="right" if col != "group" else "left")
+        for name, m in rows.items():
+            t.add_row(
+                name,
+                f"{m['n']:,}",
+                f"{m['accuracy']:.3f}",
+                f"{m['ece']:.3f}",
+                f"{m['mean_confidence']:.3f}",
             )
-        console.print("before:      ", result["before"])
-        if "after_global" in result:
-            console.print("after global:", result["after_global"])
-        console.print("after:       ", result["after"])
+        console.print(t)
+    if out:
+        os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+        with open(out, "w", encoding="utf-8") as fh:
+            json.dump(report, fh, indent=2)
+        console.print(f"[green]report -> {out}[/]")
 
-    app()
+
+@app.command("calibrate")
+def calibrate_cmd(
+    checkpoint: str = typer.Argument(...),
+    data: str = typer.Option(..., "--data", help="Held-out JSONL for fitting temperature."),
+    limit: int = typer.Option(4000, help="Cap examples used."),
+    batch_size: int = typer.Option(16),
+    split: str = typer.Option(
+        "calib",
+        help="Half of --data to use: calib|test|all. Disjoint from `evaluate --split test`.",
+    ),
+) -> None:
+    """Fit a temperature on held-out data and write it into the checkpoint."""
+    examples = sample_examples(partition_examples(list(read_jsonl(data)), split), limit)
+    result = calibrate_checkpoint(checkpoint, examples, batch_size=batch_size)
+    console.print(f"[green]global temperature = {result['temperature']:.4f}[/]")
+    by_kind = result.get("temperature_by_kind") or {}
+    if by_kind:
+        console.print(
+            "[green]per-primitive[/] "
+            + ", ".join(f"{k}={v:.4f}" for k, v in sorted(by_kind.items()))
+            + "  (written to checkpoint)"
+        )
+    console.print("before:      ", result["before"])
+    if "after_global" in result:
+        console.print("after global:", result["after_global"])
+    console.print("after:       ", result["after"])
 
 
 if __name__ == "__main__":  # pragma: no cover
-    _main()
+    app()

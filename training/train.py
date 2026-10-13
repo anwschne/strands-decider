@@ -24,6 +24,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 import torch
+import typer
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader, Dataset
 
@@ -728,37 +729,32 @@ def train(cfg: TrainConfig) -> str:
 # ---------------------------------------------------------------- CLI
 
 
-def _main() -> None:
-    import typer
-
-    def cmd(
-        config: str | None = typer.Option(None, "--config", "-c", help="YAML training config."),
-        train_file: list[str] | None = typer.Option(None, "--train-file", help="Override data."),
-        base_model: str | None = typer.Option(None, help="Override base model id."),
-        output_dir: str | None = typer.Option(None, help="Override checkpoint directory."),
-        epochs: int | None = typer.Option(None),
-        micro_batch_size: int | None = typer.Option(None),
-        max_steps: int | None = typer.Option(None, help="Hard step cap (smoke tests)."),
-    ) -> None:
-        """Train the slot heads and a LoRA adapter on the torso."""
-        cfg = TrainConfig.from_yaml(config) if config else TrainConfig()
-        if train_file:
-            cfg.train_files = list(train_file)
-        for key, val in (
-            ("base_model", base_model),
-            ("output_dir", output_dir),
-            ("epochs", epochs),
-            ("micro_batch_size", micro_batch_size),
-            ("max_steps", max_steps),
-        ):
-            if val is not None:
-                setattr(cfg, key, val)
-        if not cfg.train_files:
-            raise typer.BadParameter("no training files; pass --train-file or set train_files")
-        train(cfg)
-
-    typer.run(cmd)
+def _cli(
+    config: str | None = typer.Option(None, "--config", "-c", help="YAML training config."),
+    train_file: list[str] | None = typer.Option(None, "--train-file", help="Override data."),
+    base_model: str | None = typer.Option(None, help="Override base model id."),
+    output_dir: str | None = typer.Option(None, help="Override checkpoint directory."),
+    epochs: int | None = typer.Option(None),
+    micro_batch_size: int | None = typer.Option(None),
+    max_steps: int | None = typer.Option(None, help="Hard step cap (smoke tests)."),
+) -> None:
+    """Train the slot heads and a LoRA adapter on the torso."""
+    cfg = TrainConfig.from_yaml(config) if config else TrainConfig()
+    if train_file:
+        cfg.train_files = list(train_file)
+    for key, val in (
+        ("base_model", base_model),
+        ("output_dir", output_dir),
+        ("epochs", epochs),
+        ("micro_batch_size", micro_batch_size),
+        ("max_steps", max_steps),
+    ):
+        if val is not None:
+            setattr(cfg, key, val)
+    if not cfg.train_files:
+        raise typer.BadParameter("no training files; pass --train-file or set train_files")
+    train(cfg)
 
 
 if __name__ == "__main__":  # pragma: no cover
-    _main()
+    typer.run(_cli)

@@ -27,6 +27,8 @@ import os
 import shutil
 
 import torch
+import typer
+from rich.console import Console
 
 from strands_decider.modeling import (
     CONFIG_NAME,
@@ -185,32 +187,27 @@ def soup(checkpoints: list[str], out: str, replace: bool = False) -> str:
 # ---------------------------------------------------------------- CLI
 
 
-def _main() -> None:
-    import typer
-    from rich.console import Console
+console = Console()
 
-    console = Console()
 
-    def cmd(
-        checkpoints: list[str] = typer.Argument(
-            ..., help="Checkpoints of one recipe (other seeds)."
-        ),
-        out: str = typer.Option(
-            ..., "--out", help="Directory for the souped checkpoint: absent or empty."
-        ),
-        replace: bool = typer.Option(False, "--replace", help="Delete what --out holds first."),
-    ) -> None:
-        """Average same-recipe checkpoints by their LoRA updates and head logits.
+def _cli(
+    checkpoints: list[str] = typer.Argument(
+        ..., help="Checkpoints of one recipe (other seeds)."
+    ),
+    out: str = typer.Option(
+        ..., "--out", help="Directory for the souped checkpoint: absent or empty."
+    ),
+    replace: bool = typer.Option(False, "--replace", help="Delete what --out holds first."),
+) -> None:
+    """Average same-recipe checkpoints by their LoRA updates and head logits.
 
-        The soup's temperatures are reset: run `python -m training.evaluate calibrate` next.
-        """
-        soup(checkpoints, out, replace=replace)
-        console.print(
-            f"[green]soup of {len(checkpoints)} checkpoints -> {out}[/] (calibrate it next)"
-        )
-
-    typer.run(cmd)
+    The soup's temperatures are reset: run `python -m training.evaluate calibrate` next.
+    """
+    soup(checkpoints, out, replace=replace)
+    console.print(
+        f"[green]soup of {len(checkpoints)} checkpoints -> {out}[/] (calibrate it next)"
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover
-    _main()
+    typer.run(_cli)
