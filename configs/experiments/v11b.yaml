@@ -1,7 +1,7 @@
 # v11 arm B: v7's recipe and corpus, plus the same 30,135 changed-question prompts as
 # arm A added as KL-only rows: no label, trained only toward the frozen torso's own
 # reading of the changed question, at KL weight 1.0. Pre-registered in
-# research/preregistrations/PREREGISTRATION-v11.md. Build: python -m strands_decider.data.question_transforms
+# research/preregistrations/PREREGISTRATION-v11.md. Build: python -m training.data.question_transforms
 
 train_files: ["data/train_v5.jsonl"]
 val_fraction: 0.03

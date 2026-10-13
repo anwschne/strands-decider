@@ -1,7 +1,7 @@
 # v19: v18 (the default) plus answer-adequacy rows -- a request, a response, "is the response
 # adequate?" -- which nothing in the corpus asked before: HelpSteer2's human-rated
-# responses (python -m strands_decider.data.adequacy; nvidia/HelpSteer2, CC-BY-4.0) and generated
-# items (data/generators/gen_adequacy/, built by `python -m strands_decider.data.generated --src
+# responses (python -m training.data.adequacy; nvidia/HelpSteer2, CC-BY-4.0) and generated
+# items (data/generators/gen_adequacy/, built by `python -m training.data.generated --src
 # data/generators/gen_adequacy --out data/adequacy_gen.jsonl --eval-out
 # data/adequacy_gen_eval.jsonl`). Gold labels only, no teacher on the new rows.
 # Everything else is v18's recipe. Pre-registered in research/preregistrations/PREREGISTRATION-v19.md.

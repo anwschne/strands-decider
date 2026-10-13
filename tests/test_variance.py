@@ -14,11 +14,11 @@ from test_checkpoint_load import _tokenizer
 from test_ddp import _examples, _tiny_model_factory, _tokenizer_file
 from test_hf_export import _export, _jev
 
-import strands_decider.train as T
+import training.train as T
 from strands_decider import hf_export
-from strands_decider.data.format import write_jsonl
 from strands_decider.modeling import StrandsDeciderConfig, StrandsDeciderModel
-from strands_decider.soup import soup
+from training.data.format import write_jsonl
+from training.soup import soup
 
 REAL_CLIP = torch.nn.utils.clip_grad_norm_
 REAL_SPLIT = T.split_examples
@@ -104,7 +104,7 @@ def test_the_soup_averages_delta_w_and_the_heads_logits(ckpts, tmp_path):
 @pytest.mark.parametrize("hidden", [0, 8])
 def test_slot_heads_soup_to_their_mean_logit(hidden):
     from strands_decider.modeling import SlotHead
-    from strands_decider.soup import soup_heads
+    from training.soup import soup_heads
 
     heads = [SlotHead(32, 5, hidden=hidden) for _ in range(3)]
     with torch.no_grad():
@@ -129,12 +129,8 @@ def test_the_soup_exports(ckpts, tmp_path):
 
 
 def test_the_cli_writes_the_soup(ckpts, tmp_path):
-    from typer.testing import CliRunner
-
-    from strands_decider.cli import app
-
-    res = CliRunner().invoke(app, ["soup", *ckpts, "--out", str(tmp_path / "cli")])
-    assert res.exit_code == 0, res.output
+    # `python -m training.soup` is a typer-wrapped command; replicate what it does.
+    soup(ckpts, str(tmp_path / "cli"))
     assert json.load(open(tmp_path / "cli" / "soup.json"))["checkpoints"] == ckpts
 
 

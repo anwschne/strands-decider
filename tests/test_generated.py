@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from collections import Counter
 
-from strands_decider.data import generated as gen
-from strands_decider.data.format import Example
+from training.data import generated as gen
+from training.data.format import Example
 
 YES_NO = [["false", "no"], ["true", "yes"]]
 
@@ -66,8 +66,8 @@ def test_load_reads_the_generator_export(tmp_path):
 
 
 def test_attach_paraphrases_keeps_rows_and_order():
-    from strands_decider.data.format import Example
-    from strands_decider.data.generated import attach_paraphrases, paraphrase_pairs
+    from training.data.format import Example
+    from training.data.generated import attach_paraphrases, paraphrase_pairs
     rows = [Example(kind="noul", state=f"s{i}", instructions=f"Is {i} allowed?",
                     options=[["false", "no"], ["true", "yes"]], label=i % 2, task="gen:x") for i in range(3)]
     table = {"Is 1 allowed?": ["May 1 be allowed?", "Is 1 permitted?"]}

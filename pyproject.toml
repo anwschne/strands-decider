@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Only the corpus build uses datasets: `strands-decider data build` and `python -m strands_decider.data.multistep`.
+# Only the corpus build uses datasets: `python -m training.data build` and `python -m training.data.multistep`.
 train = ["datasets>=2.20"]
 # Image input (`serve --vision`, `ask --image`, docs/vision.md); also needs transformers >= 5.18.
 vision = ["pillow>=10"]
@@ -90,7 +90,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["SLF001"]  # tests legitimately assert on internal invariants
 "evaluation/*" = ["SLF001"]  # the probes read model internals, as the tests do
-"src/strands_decider/data/policy.py" = ["SLF001"]  # attaches _cell/_rule to its own examples for balancing
+"training/data/policy.py" = ["SLF001"]  # attaches _cell/_rule to its own examples for balancing
 "research/scripts/*" = ["RUF001"]  # chart labels intentionally use the × multiplication sign
 
 [tool.mypy]
@@ -118,7 +118,6 @@ module = [
     "torch.*",
     "transformers.*",
     "peft.*",
-    "datasets.*",
     "safetensors.*",
     "huggingface_hub.*",
     "yaml",
@@ -131,7 +130,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["evaluation"]  # test_hf_export imports multistep_eval
+pythonpath = [".", "evaluation"]  # "." so `import training.*` resolves; test_hf_export imports multistep_eval
 addopts = "-m 'not distributed'"
 markers = [
     "distributed: launches torchrun worker processes (minutes); run with -m distributed",

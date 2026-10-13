@@ -38,7 +38,8 @@ import argparse
 import json
 import random
 
-from ..prompting import NOUL_DEFAULT_CRITERIA, NOUL_SLOT_LABELS
+from strands_decider.prompting import NOUL_DEFAULT_CRITERIA, NOUL_SLOT_LABELS
+
 from .format import Example, read_jsonl, write_jsonl
 
 GENERIC_NOUL = [[lbl, NOUL_DEFAULT_CRITERIA[lbl]] for lbl in NOUL_SLOT_LABELS]

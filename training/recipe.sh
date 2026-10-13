@@ -32,7 +32,7 @@
 # Synthetic data is committed; public data is not. data/synthetic/ holds every generated
 # row and every model-produced label the recipes train on, as the exact files used: the
 # generated questions and adequacy items (built from the data/generators/gen_*/ exports by
-# strands_decider.data.generated), v20's instruction flips, the frozen Qwen3.5-4B's distributions
+# training.data.generated), v20's instruction flips, the frozen Qwen3.5-4B's distributions
 # on the short-task corpus and the multi-step rows, and v14's replay distributions.
 # Public sources are downloaded and converted by `build`, `fetch`, `multistep` and
 # `adequacy`, and v20's catch-all rows are derived from them by `catchall`.
@@ -53,7 +53,8 @@ export PYTHONUNBUFFERED=1 HF_HUB_DISABLE_PROGRESS_BARS=1
 NGPU="${NGPU:-1}"
 PARENT_CONFIG="${PARENT_CONFIG:-configs/train-parent.yaml}"
 TRAIN_CONFIG="${TRAIN_CONFIG:-configs/train.yaml}"
-strands-decider() { "$PY" -u -m strands_decider.cli "$@"; }
+# Training/eval/calibrate/data commands moved out of the strands-decider CLI (inference
+# only). Call them with the Python interpreter as `python -m training.<module>`.
 
 # label MODULE ARGS...: one process, or with NGPU > 1 one shard per GPU and then --merge.
 label() {
@@ -67,11 +68,11 @@ label() {
   "$PY" -m "$@" --merge --num-shards "$NGPU"
 }
 
-fit() {  # fit CONFIG [strands-decider train options]
+fit() {  # fit CONFIG [python -m training.train options]
   local cfg="$1"; shift
   if [ "$NGPU" -gt 1 ]; then
-    "$PY" -m torch.distributed.run --standalone --nproc_per_node="$NGPU" -m strands_decider.cli train --config "$cfg" "$@"
-  else strands-decider train --config "$cfg" "$@"; fi
+    "$PY" -m torch.distributed.run --standalone --nproc_per_node="$NGPU" -m training.train --config "$cfg" "$@"
+  else "$PY" -u -m training.train --config "$cfg" "$@"; fi
 }
 
 # verify FILE...: stop unless data/SHA256SUMS has an entry for each FILE and FILE has that
@@ -123,15 +124,15 @@ EOF
   cd - >/dev/null
 }
 
-multistep() { "$PY" -m strands_decider.data.multistep; }
+multistep() { "$PY" -m training.data.multistep; }
 
 # The committed files were built from the exports by
-#   python -m strands_decider.data.generated [--src data/generators/gen_v16]              (v16)
-#   python -m strands_decider.data.generated --src data/generators/gen_pilot_qwen data/generators/gen_mixed_pilot \
+#   python -m training.data.generated [--src data/generators/gen_v16]              (v16)
+#   python -m training.data.generated --src data/generators/gen_pilot_qwen data/generators/gen_mixed_pilot \
 #     data/generators/gen_weak --out data/generated_v18.jsonl --eval-out data/generated_v18_eval.jsonl
-#   python -m strands_decider.data.generated --src data/generators/gen_adequacy --out data/adequacy_gen.jsonl \
+#   python -m training.data.generated --src data/generators/gen_adequacy --out data/adequacy_gen.jsonl \
 #     --eval-out data/adequacy_gen_eval.jsonl
-#   python -m strands_decider.data.generated --src data/generators/gen_flips --out data/flips_v20.jsonl \
+#   python -m training.data.generated --src data/generators/gen_flips --out data/flips_v20.jsonl \
 #     --eval-out data/flips_v20_eval.jsonl
 # A rebuild today need not match them byte for byte, which is why they are committed.
 generated() {
@@ -140,37 +141,37 @@ generated() {
     cp "data/synthetic/$v.jsonl" "data/$v.jsonl"
   done
   for v in v16 v18; do
-    "$PY" -m strands_decider.data.generated --attach "data/generated_$v.jsonl" \
+    "$PY" -m training.data.generated --attach "data/generated_$v.jsonl" \
       --attach-eval "data/generated_${v}_eval.jsonl" --paraphrases data/generators/gen_paraphrases/paraphrases.jsonl \
       --out "data/generated_${v}p.jsonl" --pairs-out "data/para_pairs_${v}_eval.jsonl"
   done
 }
 
 adequacy() {
-  "$PY" -m strands_decider.data.adequacy --raw data/raw/helpsteer2 \
+  "$PY" -m training.data.adequacy --raw data/raw/helpsteer2 \
     --out data/adequacy_hs2.jsonl --eval-out data/adequacy_hs2_eval.jsonl
   cp data/synthetic/adequacy_gen.jsonl data/synthetic/adequacy_gen_eval.jsonl data/
 }
 
-catchall() { "$PY" -m strands_decider.data.catchall; }  # v20: from data/train_v5.jsonl and the held-out set
+catchall() { "$PY" -m training.data.catchall; }  # v20: from data/train_v5.jsonl and the held-out set
 
 teacher() {
   verify data/train_v5.jsonl data/multistep_v14.jsonl
-  label strands_decider.data.teacher --src data/multistep_v14.jsonl \
+  label training.data.teacher --src data/multistep_v14.jsonl \
     --out data/teacher_multistep_v14.jsonl --shift-by data/train_v5.jsonl
 }
 
 # v20's teacher file: the committed 4B distributions on the short-task corpus (labelled
-# for v12 by `python -m strands_decider.data.teacher --src data/train_v5.jsonl --out
+# for v12 by `python -m training.data.teacher --src data/train_v5.jsonl --out
 # data/teacher_v5_qwen35-4b.jsonl`; the committed copy omits the score rows, which
 # `distill` never kept), kept where they agree with gold, then v14's replay
-# distributions on the multi-step rows (`python -m strands_decider.data.replay
+# distributions on the multi-step rows (`python -m training.data.replay
 # checkpoints/hobson-2b-v14 ...`, as in `replay`).
 distill() {
   verify data/train_v5.jsonl data/synthetic/teacher_v5_qwen35-4b.jsonl \
     data/synthetic/replay_v14_multistep.jsonl
   cp data/synthetic/teacher_v5_qwen35-4b.jsonl data/synthetic/replay_v14_multistep.jsonl data/
-  "$PY" -m strands_decider.data.distill --corpus data/train_v5.jsonl --teacher data/teacher_v5_qwen35-4b.jsonl \
+  "$PY" -m training.data.distill --corpus data/train_v5.jsonl --teacher data/teacher_v5_qwen35-4b.jsonl \
     --append data/replay_v14_multistep.jsonl --out data/teacher_v20.jsonl
 }
 
@@ -181,7 +182,7 @@ parent() {
 
 replay() {
   verify data/train_v5.jsonl data/multistep_v14.jsonl
-  label strands_decider.data.replay checkpoints/hobson-2b-recipe-parent --src data/multistep_v14.jsonl \
+  label training.data.replay checkpoints/hobson-2b-recipe-parent --src data/multistep_v14.jsonl \
     --out data/replay_parent_multistep.jsonl --shift-by data/train_v5.jsonl
 }
 
@@ -190,12 +191,12 @@ train() {
   fit "$TRAIN_CONFIG" --output-dir "$CKPT"
 }
 
-calibrate() { verify data/holdout_v5_norule.jsonl; strands-decider calibrate "$CKPT" --data data/holdout_v5_norule.jsonl; }
+calibrate() { verify data/holdout_v5_norule.jsonl; "$PY" -u -m training.evaluate calibrate "$CKPT" --data data/holdout_v5_norule.jsonl; }
 
 evaluate() {
   verify data/holdout_v5_norule.jsonl data/multistep_v14_eval.jsonl
   mkdir -p reports
-  strands-decider eval "$CKPT" --data data/holdout_v5_norule.jsonl --limit 6000 --out reports/recipe_heldout.json
+  "$PY" -u -m training.evaluate evaluate "$CKPT" --data data/holdout_v5_norule.jsonl --limit 6000 --out reports/recipe_heldout.json
   "$PY" evaluation/multistep_eval.py "$CKPT"
   "$PY" evaluation/multistep_eval.py "$CKPT" --data data/generated_v16_eval.jsonl
   "$PY" evaluation/multistep_eval.py "$CKPT" --data data/generated_v18_eval.jsonl

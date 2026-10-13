@@ -13,8 +13,8 @@ import re
 
 import pytest
 
-from strands_decider.data.format import Example, read_jsonl
-from strands_decider.data.question_transforms import (
+from training.data.format import Example, read_jsonl
+from training.data.question_transforms import (
     COMPLEMENT,
     GENERIC_NOUL,
     IS_ANSWER,

@@ -5,8 +5,6 @@ from __future__ import annotations
 import pytest
 import torch
 
-from strands_decider.data.collate import CollatorConfig, SystemOneCollator
-from strands_decider.data.format import Example, split_examples
 from strands_decider.modeling import masked_log_softmax, pool_last_token
 from strands_decider.prompting import (
     build_prompt,
@@ -23,6 +21,8 @@ from strands_decider.schema import (
     SystemOneRequest,
     derive_confidence,
 )
+from training.data.collate import CollatorConfig, SystemOneCollator
+from training.data.format import Example, split_examples
 
 # ---------------------------------------------------------------- confidence
 
@@ -417,7 +417,7 @@ def _dummy(n):
 
 def test_calib_and_test_splits_are_disjoint_and_complete():
     """Fitting temperature on rows you then score inflates the calibration result."""
-    from strands_decider.evaluate import partition_examples
+    from training.evaluate import partition_examples
 
     examples = _dummy(400)
     calib = partition_examples(examples, "calib")
@@ -432,7 +432,7 @@ def test_calib_and_test_splits_are_disjoint_and_complete():
 
 
 def test_partition_is_deterministic_across_calls():
-    from strands_decider.evaluate import partition_examples
+    from training.evaluate import partition_examples
 
     examples = _dummy(200)
     assert [e.state for e in partition_examples(examples, "calib")] == [
@@ -441,14 +441,14 @@ def test_partition_is_deterministic_across_calls():
 
 
 def test_partition_all_returns_everything():
-    from strands_decider.evaluate import partition_examples
+    from training.evaluate import partition_examples
 
     examples = _dummy(50)
     assert len(partition_examples(examples, "all")) == 50
 
 
 def test_partition_rejects_unknown_split():
-    from strands_decider.evaluate import partition_examples
+    from training.evaluate import partition_examples
 
     with pytest.raises(ValueError, match="calib"):
         partition_examples(_dummy(10), "train")
@@ -456,7 +456,7 @@ def test_partition_rejects_unknown_split():
 
 def test_duplicate_examples_cannot_straddle_the_split():
     """Position-based hashing, so identical content in two rows is still split cleanly."""
-    from strands_decider.evaluate import partition_examples
+    from training.evaluate import partition_examples
 
     same = Example("noul", "identical", "i", [["false", ""], ["true", ""]], 0, task="t")
     examples = [same] * 100
@@ -467,7 +467,7 @@ def test_duplicate_examples_cannot_straddle_the_split():
 
 def test_sample_is_representative_not_a_prefix():
     """Corpora are grouped by task; a head slice evaluates one task and calls it overall."""
-    from strands_decider.evaluate import sample_examples
+    from training.evaluate import sample_examples
 
     grouped = (
         [Example("noul", f"a{i}", "i", [["false", ""], ["true", ""]], 0, task="A") for i in range(500)]
@@ -481,7 +481,7 @@ def test_sample_is_representative_not_a_prefix():
 
 
 def test_sample_is_deterministic_and_bounded():
-    from strands_decider.evaluate import sample_examples
+    from training.evaluate import sample_examples
 
     pool = _dummy(300)
     first = [e.state for e in sample_examples(pool, 50)]
@@ -578,7 +578,7 @@ def test_apply_temperature_identity_cases():
 
 def test_fit_temperature_by_kind_fits_each_separately():
     """A single global temperature lands between primitives that need different ones."""
-    from strands_decider.evaluate import fit_temperature_by_kind
+    from training.evaluate import fit_temperature_by_kind
 
     torch.manual_seed(0)
     n = 400
@@ -606,7 +606,7 @@ def test_fit_temperature_by_kind_fits_each_separately():
 
 def test_fit_temperature_by_kind_skips_thin_primitives():
     """Too few examples to fit reliably -> omitted, so serving falls back to global."""
-    from strands_decider.evaluate import fit_temperature_by_kind
+    from training.evaluate import fit_temperature_by_kind
 
     examples = [
         Example("noul", "s", "i", [["false", ""], ["true", ""]], 0, task="t")
@@ -626,7 +626,7 @@ def test_ece_and_nll_objectives_can_disagree():
     by 0.29 -- worse calibrated than not scaling at all. The objectives are not
     interchangeable, so the choice has to be deliberate.
     """
-    from strands_decider.evaluate import ece_at_temperature, fit_temperature
+    from training.evaluate import ece_at_temperature, fit_temperature
 
     torch.manual_seed(0)
     n = 600
@@ -655,7 +655,7 @@ def test_ece_and_nll_objectives_can_disagree():
 
 
 def test_fit_temperature_rejects_unknown_objective():
-    from strands_decider.evaluate import fit_temperature
+    from training.evaluate import fit_temperature
 
     with pytest.raises(ValueError, match="nll"):
         fit_temperature(torch.randn(4, 8), torch.zeros(4, dtype=torch.long),
@@ -664,7 +664,7 @@ def test_fit_temperature_rejects_unknown_objective():
 
 def test_fit_temperature_ece_requires_examples():
     """ECE needs per-kind confidence, so it cannot be computed from logits alone."""
-    from strands_decider.evaluate import fit_temperature
+    from training.evaluate import fit_temperature
 
     with pytest.raises(ValueError, match="examples"):
         fit_temperature(torch.randn(4, 8), torch.zeros(4, dtype=torch.long),
@@ -908,8 +908,8 @@ def test_collect_logits_masks_the_padded_columns():
     """A pointer head scores padded option slots from position 0, so in a mixed-width
     batch those columns hold real values. collect_logits must mask them: multistep_eval
     takes a raw argmax over every column."""
-    from strands_decider.evaluate import collect_logits
     from strands_decider.modeling import MASK_VALUE
+    from training.evaluate import collect_logits
 
     class _Stub:
         tokenizer = _FakeTokenizer()

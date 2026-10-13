@@ -428,8 +428,8 @@ def test_multistep_eval_lines_parse_back_whatever_the_name_length(tmp_path, monk
 
     import multistep_eval  # evaluation/multistep_eval.py, on sys.path through pyproject.toml
 
-    from strands_decider.data.format import Example
     from strands_decider.modeling import MASK_VALUE, StrandsDeciderModel
+    from training.data.format import Example
 
     long_name = "gen:a_name_of_thirty_one_chars!"
     assert len(long_name) >= 26

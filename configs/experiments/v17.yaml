@@ -1,6 +1,6 @@
 # v17: v16 with its multi-step rows replayed toward v14. The same rows as v16; the only
 # change is the teacher distribution on v14's 12,909 multi-step rows: v14's own answers
-# (python -m strands_decider.data.replay) in place of the frozen Qwen3.5-4B's, so the model is
+# (python -m training.data.replay) in place of the frozen Qwen3.5-4B's, so the model is
 # pulled toward what v14 did on them while it learns the generated questions.
 # Pre-registered in research/preregistrations/PREREGISTRATION-v17.md. Trained under WSL2.
 

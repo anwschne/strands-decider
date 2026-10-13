@@ -6,7 +6,7 @@ import random
 
 import pytest
 
-from strands_decider.data.sampling import LengthGroupedBatchSampler, padding_fraction
+from training.data.sampling import LengthGroupedBatchSampler, padding_fraction
 
 
 def _mixed_lengths(n: int = 4000, long_share: float = 0.09, seed: int = 0):

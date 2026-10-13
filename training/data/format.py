@@ -16,7 +16,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import asdict, dataclass, field
 from typing import IO, Any, cast
 
-from ..schema import ChoiceQuestion, Content, NoulQuestion, Question, ScoreQuestion
+from strands_decider.schema import ChoiceQuestion, Content, NoulQuestion, Question, ScoreQuestion
 
 
 @dataclass

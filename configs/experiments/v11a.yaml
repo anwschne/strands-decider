@@ -1,7 +1,7 @@
 # v11 arm A: v7's recipe on a question-varied corpus. 30% of v5's rows are replaced by
 # the same states asked a transformed question (data/question_transforms.py), so
 # steps and compute match v7. Pre-registered in research/preregistrations/PREREGISTRATION-v11.md.
-# Build: python -m strands_decider.data.question_transforms
+# Build: python -m training.data.question_transforms
 
 train_files: ["data/train_v11a.jsonl"]
 val_fraction: 0.03

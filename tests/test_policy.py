@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from collections import Counter
 
-from strands_decider.data import policy as pol
-from strands_decider.data.format import Example
+from training.data import policy as pol
+from training.data.format import Example
 
 
 def _sharc(answer, scenario="", history=0):

@@ -30,9 +30,9 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from strands_decider.data.format import Example, write_jsonl
-from strands_decider.distributed import plan_step
-from strands_decider.train import TrainConfig
+from training.data.format import Example, write_jsonl
+from training.distributed import plan_step
+from training.train import TrainConfig
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -144,9 +144,9 @@ def corpus(tmp_path_factory):
 def worker(cfg_path: str) -> None:
     """One rank: train with the tiny model, recording gradients and trained rows."""
     torch.set_num_threads(1)
-    import strands_decider.train as T
-    from strands_decider.data.collate import SystemOneCollator
+    import training.train as T
     from strands_decider.modeling import StrandsDeciderModel
+    from training.data.collate import SystemOneCollator
 
     with open(cfg_path, encoding="utf-8") as fh:
         spec = json.load(fh)
@@ -378,7 +378,7 @@ def test_ddp_refuses_ranks_that_hold_different_data(corpus, tmp_path):
 
 
 def test_train_refuses_more_ranks_than_rows(monkeypatch):
-    from strands_decider.train import train
+    from training.train import train
 
     monkeypatch.setenv("WORLD_SIZE", "33")
     with pytest.raises(ValueError, match="exceeds the 32 rows"):
@@ -390,7 +390,7 @@ def test_train_refuses_more_ranks_than_rows(monkeypatch):
 
 def _step_batches(seed: int = 0):
     """Micro-batches of a v17-like corpus: mostly short rows, some long documents."""
-    from strands_decider.data.sampling import LengthGroupedBatchSampler
+    from training.data.sampling import LengthGroupedBatchSampler
 
     rng = random.Random(seed)
     lengths = [rng.choice([rng.randrange(150, 900)] * 9 + [rng.randrange(2000, 9000)])
@@ -418,7 +418,7 @@ def test_plan_balances_better_than_even_halves():
     Documents the intent of the planner; the 0.8 threshold is a heuristic and may need
     retuning with FORWARD_OVERHEAD.
     """
-    from strands_decider.distributed import FORWARD_OVERHEAD
+    from training.distributed import FORWARD_OVERHEAD
 
     lengths, batches = _step_batches()
 
@@ -436,7 +436,7 @@ def test_plan_balances_better_than_even_halves():
 
 def test_skipping_rows_matches_collating_them(corpus):
     """SystemOneCollator.skip leaves the random stream where collating the rows would."""
-    from strands_decider.data.collate import CollatorConfig, SystemOneCollator
+    from training.data.collate import CollatorConfig, SystemOneCollator
 
     tok = _load_tokenizer(str(corpus / "tokenizer.json"))
     rows = _examples(64, seed=5)
@@ -476,7 +476,7 @@ class _StubLM:
 
 
 def _stub_teacher(corpus, monkeypatch, width_term=0.0):
-    import strands_decider.data.teacher as teacher
+    import training.data.teacher as teacher
 
     tok = _load_tokenizer(str(corpus / "tokenizer.json"))
     tok.chat_template = ("{% for m in messages %}<{{ m.role }}>{{ m.content }}\n{% endfor %}"
@@ -515,7 +515,7 @@ def test_teacher_shard_resumes_and_merge_refuses_unfinished(corpus, tmp_path, mo
     main([*base, "--out", out, "--num-shards", "2", "--shard-index", "0"])
     main([*base, "--out", out, "--num-shards", "2", "--shard-index", "1"])
     # Interrupt shard 1: half its rows lost, a cut-off line, no .done marker.
-    from strands_decider.data import shards
+    from training.data import shards
 
     s1 = shards.path(out, 1, 2)
     keep = open(s1).read().splitlines()[: 10]
@@ -529,7 +529,7 @@ def test_teacher_shard_resumes_and_merge_refuses_unfinished(corpus, tmp_path, mo
 
 
 def test_replay_shards_merge_to_the_single_process_file(corpus, tmp_path, monkeypatch):
-    import strands_decider.evaluate as evaluate
+    import training.evaluate as evaluate
     from strands_decider.modeling import MASK_VALUE, StrandsDeciderModel
 
     def fake_collect(model, examples, *, device="cuda", batch_size=16, max_length=3072):
@@ -550,7 +550,7 @@ def test_replay_shards_merge_to_the_single_process_file(corpus, tmp_path, monkey
     monkeypatch.setattr(StrandsDeciderModel, "load",
                         staticmethod(lambda path, **k: SimpleNamespace(
                             config=SimpleNamespace(max_length=3072))))
-    import strands_decider.data.replay as replay
+    import training.data.replay as replay
 
     base = ["ckpt", "--src", str(corpus / "train.jsonl"), "--shift-by", str(corpus / "val.jsonl")]
     replay.main([*base, "--out", str(tmp_path / "one.jsonl")])

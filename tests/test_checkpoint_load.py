@@ -159,7 +159,7 @@ def test_hobson_info_accepts_a_repo_id(ckpt, monkeypatch):
 def test_calibration_refuses_a_repo_id_before_the_fit(ckpt, monkeypatch):
     """calibrate_checkpoint writes hobson_config.json into the checkpoint at the end, so a
     downloaded snapshot would lose the fit. It is refused before anything loads."""
-    from strands_decider.evaluate import calibrate_checkpoint
+    from training.evaluate import calibrate_checkpoint
 
     _, _, loads = ckpt
     with pytest.raises(FileNotFoundError, match="needs a local directory"):

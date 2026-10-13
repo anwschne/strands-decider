@@ -1,7 +1,7 @@
 # v18: v17 plus generated questions aimed at v16's weakest skills -- the completed
 # mixed-skill pilot and a weighted run (data/generators/gen_mixed_pilot/, data/generators/gen_weak/) --
 # and the OpenRouter pilot's questions (data/generators/gen_pilot_qwen/, v16's skills, not
-# trained on before), built by `python -m strands_decider.data.generated --src
+# trained on before), built by `python -m training.data.generated --src
 # data/generators/gen_pilot_qwen data/generators/gen_mixed_pilot data/generators/gen_weak --out
 # data/generated_v18.jsonl --eval-out data/generated_v18_eval.jsonl`. Everything
 # else is v17's recipe, replay toward v14 included. Pre-registered in research/preregistrations/PREREGISTRATION-v18.md.

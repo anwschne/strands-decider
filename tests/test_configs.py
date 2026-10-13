@@ -18,7 +18,7 @@ import os
 import pytest
 
 from strands_decider.modeling import StrandsDeciderConfig
-from strands_decider.train import TrainConfig
+from training.train import TrainConfig
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIGS = sorted(glob.glob(os.path.join(ROOT, "configs", "**", "*.yaml"), recursive=True))

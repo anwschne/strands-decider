@@ -14,7 +14,7 @@ Probabilities are the softmax of the checkpoint's raw logits (temperature 1, no
 calibration), over each row's options in canonical order; the collator permutes them
 with the options at training time.
 
-    python -m strands_decider.data.replay CHECKPOINT --src data/multistep_v14.jsonl \\
+    python -m training.data.replay CHECKPOINT --src data/multistep_v14.jsonl \\
         --out data/replay_v14_multistep.jsonl --shift-by data/train_v5.jsonl
 
 On N GPUs: one process per GPU with `--num-shards N --shard-index i` (each with the same
@@ -28,8 +28,9 @@ import json
 
 
 def main(argv: list[str] | None = None) -> None:
+    from strands_decider.modeling import StrandsDeciderModel, masked_log_softmax
+
     from ..evaluate import collect_logits
-    from ..modeling import StrandsDeciderModel, masked_log_softmax
     from . import shards
     from .format import load_examples
 

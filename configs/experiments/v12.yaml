@@ -1,6 +1,6 @@
 # v12: v7's recipe with the KL reference replaced by a frozen Qwen3.5-4B teacher (read
 # SemIf's way; 0.805 on JevBench). Pre-registered in research/preregistrations/PREREGISTRATION-v12.md.
-# Labels: python -m strands_decider.data.teacher --model Qwen/Qwen3.5-4B \
+# Labels: python -m training.data.teacher --model Qwen/Qwen3.5-4B \
 #   --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
 #   --src data/train_v5.jsonl --out data/teacher_v5_qwen35-4b.jsonl
 # The committed data/synthetic/teacher_v5_qwen35-4b.jsonl lacks the 21,000 score rows

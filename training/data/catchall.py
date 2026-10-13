@@ -18,7 +18,7 @@ at the end of the canonical order; options are shuffled at collate time.
 The eval applies the same transform to the test half of two held-out tasks never
 trained on (`massive_intent`, `emotion` in data/holdout_v5_norule.jsonl).
 
-    python -m strands_decider.data.catchall --out data/catchall_v20.jsonl --eval-out data/catchall_v20_eval.jsonl
+    python -m training.data.catchall --out data/catchall_v20.jsonl --eval-out data/catchall_v20_eval.jsonl
 """
 from __future__ import annotations
 

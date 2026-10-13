@@ -2,9 +2,12 @@
 
 This document describes the model: the pointer readout, the three question types, the
 training objective and the design decisions behind them. It ends with the repository
-layout. Paths are relative to the repository root unless they are links. A module path
-such as `data/teacher.py` or `infer.py` is relative to `src/strands_decider/`; the scripts under
-`data/generators/` and `data/checks/` are relative to the repository root.
+layout. Paths are relative to the repository root unless they are links. The published
+`strands_decider` package (inference) lives under `src/strands_decider/`; the training
+code lives under `training/`. An inference module path such as `infer.py` is relative
+to `src/strands_decider/`; a training module path such as `data/teacher.py` is relative
+to `training/`. The scripts under `data/generators/` and `data/checks/` are relative to
+the repository root.
 
 ## The architecture
 
@@ -216,12 +219,28 @@ encoding rather than guess whether it has a batch dimension.
 ## Layout
 
 ```
-src/strands_decider/
+src/strands_decider/              -- published package (inference only)
   schema.py       wire types; the confidence formula
   prompting.py    state/question rendering; slot <-> option binding
   modeling.py     LLM torso (Qwen3 or hybrid Qwen3.5) + pointer (or slot) readout;
                   masked softmax; KL reference; is_hybrid
-  data/
+  infer.py        serving engine; shared-state cache, including hybrid torsos
+  mps_kernels.py  Gated DeltaNet chunk rule for Apple-silicon serving (no fla on macOS)
+  cpu_kernels.py  the Gated DeltaNet depthwise causal conv for CPU inference
+  mlx_engine.py   serving with the torso on MLX (--device mlx); the engine otherwise infer.py's
+  server.py       FastAPI, POST /v1/systemone
+  cli.py          the strands-decider command (ask / serve / info)
+  hf_export.py    a checkpoint as a Hugging Face model folder (safetensors, card, manifest)
+  naming.py       release naming helpers (used by hf_export and release scripts)
+  vision.py       Qwen3.5 vision-tower engine (`serve --vision`, `ask --image`)
+
+training/                         -- not published; run as `python -m training.<module>`
+  train.py        LoRA + readout training loop (`python -m training.train`)
+  evaluate.py     accuracy, ECE, NLL, MAE; temperature fitting; calib/test split
+                  (`python -m training.evaluate evaluate|calibrate`)
+  soup.py         average same-recipe checkpoints (`python -m training.soup`)
+  distributed.py  multi-GPU training under torchrun: the 1-GPU steps, shared across ranks
+  data/           corpus building and inspection (`python -m training.data …`)
     format.py     Example, JSONL io, stratified and held-out-task splits
     recipes.py    HF dataset -> training examples
     collate.py    option shuffling, tokenisation, ordinal targets, option positions
@@ -239,16 +258,6 @@ src/strands_decider/
     catchall.py   "other" / "none of these" options on the corpus's choice rows (v20)
     distill.py    teacher distributions only where the teacher agrees with gold (v20)
     shards.py     one labelling process per GPU, and the merge
-  train.py        LoRA + readout training loop
-  distributed.py  multi-GPU training under torchrun: the 1-GPU steps, shared across ranks
-  evaluate.py     accuracy, ECE, NLL, MAE; temperature fitting; calib/test split
-  infer.py        serving engine; shared-state cache, including hybrid torsos
-  mps_kernels.py  Gated DeltaNet chunk rule for Apple-silicon serving (no fla on macOS)
-  cpu_kernels.py  the Gated DeltaNet depthwise causal conv for CPU inference
-  mlx_engine.py   serving with the torso on MLX (--device mlx); the engine otherwise infer.py's
-  server.py       FastAPI, POST /v1/systemone
-  cli.py          the strands-decider command
-  hf_export.py    a checkpoint as a Hugging Face model folder (safetensors, card, manifest)
 
 configs/          train.yaml (the v19 recipe, WSL2), train-parent.yaml (its parent,
                   v14's recipe), train-v7.yaml (v7, Windows)

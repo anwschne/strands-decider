@@ -5,7 +5,7 @@
 #   a parent's own answer distributions (the parent is v14's recipe,
 #   configs/train-parent.yaml), 2,148 + 1,667 generated document questions
 #   (data/generators/gen_v16/; data/generators/gen_pilot_qwen/, gen_mixed_pilot/, gen_weak/) -- plus 6,166
-#   answer-adequacy rows: 4,866 from HelpSteer2's human ratings (strands_decider.data.adequacy) and
+#   answer-adequacy rows: 4,866 from HelpSteer2's human ratings (training.data.adequacy) and
 #   1,300 generated (data/generators/gen_adequacy/). Qwen3.5-2B-Base torso, pointer readout.
 #   JevBench public 0.723 (167/231), Brier 0.342, ECE 0.052; answer adequacy 0.739 on
 #   HelpSteer2's held-out responses; MuSiQue 0.879; HotpotQA, never trained on, 0.726.

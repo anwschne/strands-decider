@@ -15,9 +15,9 @@ import sys
 import warnings
 
 warnings.filterwarnings("ignore")
-from strands_decider.data.format import load_examples  # noqa: E402
-from strands_decider.evaluate import collect_logits, predictions_from_logits  # noqa: E402
 from strands_decider.modeling import StrandsDeciderModel  # noqa: E402
+from training.data.format import load_examples  # noqa: E402
+from training.evaluate import collect_logits, predictions_from_logits  # noqa: E402
 
 ckpt, path = sys.argv[1], sys.argv[2]
 examples = load_examples([path])

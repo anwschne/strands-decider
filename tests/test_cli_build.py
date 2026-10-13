@@ -1,15 +1,15 @@
-"""`strands-decider data build`: one failed recipe stops the build, and no corpus is written."""
+"""`python -m training.data build`: one failed recipe stops the build, and no corpus is written."""
 
 from typer.testing import CliRunner
 
-import strands_decider.data.recipes as recipes
-from strands_decider.cli import app
-from strands_decider.data.format import Example, read_jsonl
+import training.data.recipes as recipes
+from training.data.__main__ import app
+from training.data.format import Example, read_jsonl
 
 
 def _build(tmp_path, *names):
     out = tmp_path / "train.jsonl"
-    args = ["data", "build", "--out", str(out)]
+    args = ["build", "--out", str(out)]
     for name in names:
         args += ["-r", name]
     return CliRunner().invoke(app, args), out

@@ -12,7 +12,7 @@ The output is one teacher file for `TrainConfig.teacher_file`: the agreeing rows
 (e.g. the replay distributions on the multi-step rows, already offset past the corpus).
 Indices must not overlap.
 
-    python -m strands_decider.data.distill --corpus data/train_v5.jsonl \
+    python -m training.data.distill --corpus data/train_v5.jsonl \
         --teacher data/teacher_v5_qwen35-4b.jsonl \
         --append data/replay_v14_multistep.jsonl --out data/teacher_v20.jsonl
 """

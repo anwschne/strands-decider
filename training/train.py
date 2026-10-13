@@ -27,11 +27,12 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader, Dataset
 
+from strands_decider.modeling import StrandsDeciderConfig, StrandsDeciderModel
+
 from . import distributed
 from .data.collate import CollatorConfig, SystemOneCollator
 from .data.format import Example, load_examples, split_examples
 from .data.sampling import LengthGroupedBatchSampler, example_length, padding_fraction
-from .modeling import StrandsDeciderConfig, StrandsDeciderModel
 
 
 @dataclass
@@ -493,7 +494,7 @@ def train(cfg: TrainConfig) -> str:
         print(f"[strands-decider] +{len(kl_rows):,} KL-only rows (weight {cfg.kl_only_weight})")
     print(f"[strands-decider] train={len(train_examples):,} val={len(val_examples):,}")
     if not train_examples:
-        raise SystemExit("no training examples; run `strands-decider data build` first")
+        raise SystemExit("no training examples; run `python -m training.data build` first")
 
     coll_cfg = CollatorConfig(
         max_length=cfg.max_length,
@@ -722,3 +723,42 @@ def train(cfg: TrainConfig) -> str:
         json.dump(history, fh, indent=2)
     print(f"[strands-decider] saved to {cfg.output_dir}")
     return cfg.output_dir
+
+
+# ---------------------------------------------------------------- CLI
+
+
+def _main() -> None:
+    import typer
+
+    def cmd(
+        config: str | None = typer.Option(None, "--config", "-c", help="YAML training config."),
+        train_file: list[str] | None = typer.Option(None, "--train-file", help="Override data."),
+        base_model: str | None = typer.Option(None, help="Override base model id."),
+        output_dir: str | None = typer.Option(None, help="Override checkpoint directory."),
+        epochs: int | None = typer.Option(None),
+        micro_batch_size: int | None = typer.Option(None),
+        max_steps: int | None = typer.Option(None, help="Hard step cap (smoke tests)."),
+    ) -> None:
+        """Train the slot heads and a LoRA adapter on the torso."""
+        cfg = TrainConfig.from_yaml(config) if config else TrainConfig()
+        if train_file:
+            cfg.train_files = list(train_file)
+        for key, val in (
+            ("base_model", base_model),
+            ("output_dir", output_dir),
+            ("epochs", epochs),
+            ("micro_batch_size", micro_batch_size),
+            ("max_steps", max_steps),
+        ):
+            if val is not None:
+                setattr(cfg, key, val)
+        if not cfg.train_files:
+            raise typer.BadParameter("no training files; pass --train-file or set train_files")
+        train(cfg)
+
+    typer.run(cmd)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    _main()

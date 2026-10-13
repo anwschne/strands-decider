@@ -15,7 +15,7 @@ import os
 import pytest
 import torch
 
-from strands_decider.data.format import Example
+from training.data.format import Example
 
 pytestmark = pytest.mark.skipif(
     not torch.cuda.is_available(), reason="needs a CUDA device"
@@ -39,7 +39,7 @@ def test_torso_loads_without_lm_head(model):
 
 
 def test_forward_produces_masked_distribution(model):
-    from strands_decider.data.collate import CollatorConfig, SystemOneCollator
+    from training.data.collate import CollatorConfig, SystemOneCollator
 
     ex = Example(
         kind="choice",

@@ -18,7 +18,7 @@ training and evaluation files:
 Rows over the window are dropped, never truncated (`multistep.fits`).
 
 v18 combines further exports into a file of its own:
-    python -m strands_decider.data.generated --src data/generators/gen_pilot_qwen data/generators/gen_mixed_pilot data/generators/gen_weak \
+    python -m training.data.generated --src data/generators/gen_pilot_qwen data/generators/gen_mixed_pilot data/generators/gen_weak \
         --out data/generated_v18.jsonl --eval-out data/generated_v18_eval.jsonl
 """
 from __future__ import annotations

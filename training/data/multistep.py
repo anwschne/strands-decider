@@ -204,7 +204,7 @@ def musique_pairs(rows: Iterable[dict], n_questions: int, seed: int = 0) -> list
 
 def fits(examples: list[Example], tokenizer: Any, max_tokens: int) -> list[Example]:
     """Drop rows whose rendered prompt exceeds the window (truncation would cut options)."""
-    from ..prompting import build_prompt
+    from strands_decider.prompting import build_prompt
 
     return [e for e in examples
             if len(tokenizer(build_prompt(e.state, e.to_question())[0])["input_ids"]) <= max_tokens]

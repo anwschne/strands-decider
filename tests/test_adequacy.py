@@ -1,5 +1,5 @@
 """HelpSteer2 -> answer-adequacy rows (src/strands_decider/data/adequacy.py). No GPU, no download."""
-from strands_decider.data.adequacy import OPTIONS, QUESTION, TASK, balanced, to_example, verdict
+from training.data.adequacy import OPTIONS, QUESTION, TASK, balanced, to_example, verdict
 
 
 def row(prompt, h, c, response="r"):

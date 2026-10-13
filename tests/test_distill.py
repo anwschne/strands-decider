@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from strands_decider.data.distill import agreeing, main
+from training.data.distill import agreeing, main
 
 
 def rows():

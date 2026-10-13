@@ -29,7 +29,8 @@ from collections.abc import Iterator, Sequence
 
 from torch.utils.data import Sampler
 
-from ..prompting import build_prompt
+from strands_decider.prompting import build_prompt
+
 from .format import Example
 
 

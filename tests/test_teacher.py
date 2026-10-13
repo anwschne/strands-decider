@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import pytest
 
-from strands_decider.data.format import Example
-from strands_decider.data.teacher import LETTERS, render, to_row
+from training.data.format import Example
+from training.data.teacher import LETTERS, render, to_row
 
 NOUL = Example(kind="noul", state="WIN a FREE cruise", instructions="Is this spam?",
                options=[["false", "genuine"], ["true", "promotional"]], label=1, task="spam")
@@ -70,7 +70,7 @@ def test_label_matches_the_models_own_softcapped_head():
     transformers = pytest.importorskip("transformers")
     if not hasattr(transformers, "Gemma4TextConfig"):
         pytest.skip("this transformers has no Gemma 4")
-    from strands_decider.data.teacher import label
+    from training.data.teacher import label
 
     torch.manual_seed(0)
     cfg = transformers.Gemma4TextConfig(

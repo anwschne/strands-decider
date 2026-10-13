@@ -18,7 +18,7 @@ each row's last real token, and only the option letters' output rows applied. Un
 causal attention the real tokens never see the right padding, so this matches the
 batch-of-one path up to bf16 accumulation order (`--check` measures the difference).
 
-    python -m strands_decider.data.teacher --src data/train_v5.jsonl --out data/teacher_v5.jsonl
+    python -m training.data.teacher --src data/train_v5.jsonl --out data/teacher_v5.jsonl
 
 On N GPUs, run one process per GPU with `--num-shards N --shard-index i`, then the same
 command with `--merge` instead of `--shard-index` to write `--out` (and `--shift-by`'s

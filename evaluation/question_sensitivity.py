@@ -34,8 +34,6 @@ warnings.filterwarnings("ignore")
 import torch  # noqa: E402
 from torch.utils.data import DataLoader  # noqa: E402
 
-from strands_decider.data.collate import CollatorConfig, SystemOneCollator  # noqa: E402
-from strands_decider.data.format import Example  # noqa: E402
 from strands_decider.modeling import (  # noqa: E402
     MASK_VALUE,
     StrandsDeciderModel,
@@ -43,7 +41,9 @@ from strands_decider.modeling import (  # noqa: E402
     pool_last_token,
 )
 from strands_decider.prompting import NOUL_DEFAULT_CRITERIA, NOUL_SLOT_LABELS  # noqa: E402
-from strands_decider.train import ExampleDataset  # noqa: E402
+from training.data.collate import CollatorConfig, SystemOneCollator  # noqa: E402
+from training.data.format import Example  # noqa: E402
+from training.train import ExampleDataset  # noqa: E402
 
 GENERIC_NOUL = [[lbl, NOUL_DEFAULT_CRITERIA[lbl]] for lbl in NOUL_SLOT_LABELS]
 

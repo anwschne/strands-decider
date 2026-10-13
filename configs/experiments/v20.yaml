@@ -6,7 +6,7 @@
 #   - instruction flips: short policies asked twice with instructions that reverse the
 #     answer (data/generators/gen_flips/ -> data/flips_v20.jsonl)
 #   - catch-all options: "other" / "none of these" rows from the corpus's own choice
-#     tasks, right half the time (python -m strands_decider.data.catchall)
+#     tasks, right half the time (python -m training.data.catchall)
 #   - distillation where the frozen Qwen3.5-4B agrees with the gold label: its
 #     distributions on the 59,525 yes/no and choice short-task rows it gets right, merged
 #     with v19's replay distributions (data/teacher_v20.jsonl)

@@ -7,8 +7,8 @@ from collections import Counter
 
 import pytest
 
-from strands_decider.data import multistep as ms
-from strands_decider.data.format import Example
+from training.data import multistep as ms
+from training.data.format import Example
 
 RAW = "data/raw"
 

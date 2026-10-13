@@ -16,7 +16,8 @@ from typing import Any
 
 import torch
 
-from ..prompting import build_prompt
+from strands_decider.prompting import build_prompt
+
 from .format import Example
 
 

@@ -26,13 +26,14 @@ CKPT="checkpoints/hobson-1.7b-recipe"
 # PY is the interpreter (recipe.sh sets it); the default is the active environment's python.
 PY="${PY:-python}"
 export PYTHONUNBUFFERED=1 HF_HUB_DISABLE_SYMLINKS_WARNING=1 HF_HUB_DISABLE_PROGRESS_BARS=1
-strands-decider() { "$PY" -u -m strands_decider.cli "$@"; }
+# Training/eval/calibrate/data commands moved out of the strands-decider CLI (inference
+# only). Call them with the Python interpreter as `python -m training.<module>`.
 
 build() {
   echo "############ build the v5 corpus ############"
   # Seven whole tasks are held out: four with label sets and rubrics never seen in
   # training, and three RuleTaker depths (in-family transfer, reported separately).
-  strands-decider data build --out data/train_v5.jsonl --max-options 24 \
+  "$PY" -u -m training.data build --out data/train_v5.jsonl --max-options 24 \
     -r ag_news -r banking77 -r clinc150 -r dbpedia -r lang_id -r yahoo_topics \
     -r spam -r toxicity -r mnli_entail -r boolq \
     -r paws -r vitaminc -r wnli -r pubmed_qa \
@@ -56,12 +57,12 @@ EOF
 
 train() {
   echo "############ train ############"
-  strands-decider train --config configs/train-v7.yaml
+  "$PY" -u -m training.train --config configs/train-v7.yaml
 }
 
 calibrate() {
   echo "############ calibrate (calib half of the unseen tasks) ############"
-  strands-decider calibrate "$CKPT" --data data/holdout_v5_norule.jsonl
+  "$PY" -u -m training.evaluate calibrate "$CKPT" --data data/holdout_v5_norule.jsonl
 }
 
 evaluate() {
@@ -69,10 +70,10 @@ evaluate() {
   # `test` half, disjoint from the rows calibration was fitted on.
   mkdir -p reports
   echo "############ eval: unseen tasks ############"
-  strands-decider eval "$CKPT" --data data/holdout_v5_norule.jsonl --limit 6000 \
+  "$PY" -u -m training.evaluate evaluate "$CKPT" --data data/holdout_v5_norule.jsonl --limit 6000 \
     --out reports/recipe_heldout.json
   echo "############ eval: tasks in the training mix ############"
-  strands-decider eval "$CKPT" --data data/train_v5.jsonl --limit 6000 --split all \
+  "$PY" -u -m training.evaluate evaluate "$CKPT" --data data/train_v5.jsonl --limit 6000 --split all \
     --out reports/recipe_indist.json
 }
 

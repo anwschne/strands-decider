@@ -11,7 +11,7 @@ yes/no, rule chaining — because a corpus drawn from one task teaches memorisat
 binding.
 
 ```bash
-strands-decider data build --out data/train_v5.jsonl --max-options 24 \
+python -m training.data build --out data/train_v5.jsonl --max-options 24 \
   -r ag_news -r banking77 -r clinc150 -r dbpedia -r lang_id -r yahoo_topics \
   -r spam -r toxicity -r mnli_entail -r boolq \
   -r paws -r vitaminc -r wnli -r pubmed_qa \
@@ -42,16 +42,16 @@ Datasets with large label sets (banking77's 77 intents) are subsampled per examp
 useful signal: it stops the readout from assuming a fixed number of live options.
 
 ```bash
-strands-decider data recipes                     # what is available
-strands-decider data stats data/train_v5.jsonl   # composition
-strands-decider data peek  data/train_v5.jsonl   # exactly what the model will see
+python -m training.data recipes                     # what is available
+python -m training.data stats data/train_v5.jsonl   # composition
+python -m training.data peek  data/train_v5.jsonl   # exactly what the model will see
 ```
 
 The multi-step rows come from two downloaded releases and two HuggingFace datasets:
 
 ```bash
 training/recipe.sh fetch                  # ContractNLI, MuSiQue and HelpSteer2 into data/raw/ (~350 MB)
-python -m strands_decider.data.multistep    # data/multistep_v14.jsonl and _eval.jsonl
+python -m training.data.multistep    # data/multistep_v14.jsonl and _eval.jsonl
 ```
 
 That writes 12,909 training rows and 4,084 evaluation rows from splits never trained
@@ -64,7 +64,7 @@ dropped, never truncated. `tests/test_multistep.py` checks both properties.
 ## 2. Label with the teacher
 
 ```bash
-python -m strands_decider.data.teacher --src data/multistep_v14.jsonl \
+python -m training.data.teacher --src data/multistep_v14.jsonl \
   --out data/teacher_multistep_v14.jsonl --shift-by data/train_v5.jsonl
 ```
 
@@ -82,8 +82,8 @@ Before this step, `recipe.sh parent` trains the parent checkpoint from
 writing `data/replay_parent_multistep.jsonl`, which `configs/train.yaml` reads.
 
 ```bash
-strands-decider train --config configs/train.yaml       # v19, under WSL2, ~6 h
-strands-decider train --config configs/train-v7.yaml    # v7, on Windows, ~3 h
+python -m training.train --config configs/train.yaml       # v19, under WSL2, ~6 h
+python -m training.train --config configs/train-v7.yaml    # v7, on Windows, ~3 h
 ```
 
 LoRA on the torso, the pointer readout and the KL terms (the teacher's only for `configs/train.yaml`);
@@ -103,8 +103,8 @@ three times, with `seed: 0`, `1` and `2` and an `output_dir` each (here `checkpo
 `r-s2`), then soup and calibrate them:
 
 ```bash
-strands-decider soup checkpoints/r-s0 checkpoints/r-s1 checkpoints/r-s2 --out checkpoints/r-soup
-strands-decider calibrate checkpoints/r-soup --data data/holdout_v5_norule.jsonl
+python -m training.soup checkpoints/r-s0 checkpoints/r-s1 checkpoints/r-s2 --out checkpoints/r-soup
+python -m training.evaluate calibrate checkpoints/r-soup --data data/holdout_v5_norule.jsonl
 ```
 
 `soup` writes one checkpoint whose weights average the seeds' by what they compute, not
@@ -151,7 +151,7 @@ unchanged:
 ## 4. Calibrate
 
 ```bash
-strands-decider calibrate checkpoints/hobson-2b-recipe --data data/holdout_v5_norule.jsonl
+python -m training.evaluate calibrate checkpoints/hobson-2b-recipe --data data/holdout_v5_norule.jsonl
 ```
 
 Fits a temperature **per primitive**, minimising **ECE**, and writes them into the

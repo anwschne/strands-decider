@@ -15,11 +15,11 @@ import warnings
 from collections import defaultdict
 
 warnings.filterwarnings("ignore")
-from strands_decider.data.format import load_examples  # noqa: E402
-from strands_decider.data.multistep import CANNOT  # noqa: E402
-from strands_decider.evaluate import collect_logits  # noqa: E402
 from strands_decider.modeling import StrandsDeciderModel  # noqa: E402
 from strands_decider.prompting import build_prompt  # noqa: E402
+from training.data.format import load_examples  # noqa: E402
+from training.data.multistep import CANNOT  # noqa: E402
+from training.evaluate import collect_logits  # noqa: E402
 
 
 def main():

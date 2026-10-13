@@ -11,10 +11,10 @@ import pytest
 import torch
 from test_ddp import _examples, _tiny_model_factory, _tokenizer_file
 
-import strands_decider.train as T
-from strands_decider.data.collate import CollatorConfig, SystemOneCollator
-from strands_decider.data.format import load_examples, write_jsonl
+import training.train as T
 from strands_decider.modeling import StrandsDeciderModel
+from training.data.collate import CollatorConfig, SystemOneCollator
+from training.data.format import load_examples, write_jsonl
 
 REAL_CLIP = torch.nn.utils.clip_grad_norm_
 

@@ -14,9 +14,9 @@ halves right. Uses the checkpoint's own temperatures and window.
 import json
 import sys
 
-from strands_decider.data.format import read_jsonl
-from strands_decider.evaluate import collect_logits, predictions_from_logits
 from strands_decider.modeling import StrandsDeciderModel
+from training.data.format import read_jsonl
+from training.evaluate import collect_logits, predictions_from_logits
 
 
 def main(argv):

@@ -143,7 +143,7 @@ torchrun --standalone --nproc_per_node=8 -m strands_decider.cli train --config c
 ```
 
 Each optimizer step trains the same 32 rows, in the same micro-batches, as one GPU does
-(`src/strands_decider/distributed.py`). The ranks share a step's rows out by padded length, and no
+(`training/distributed.py`). The ranks share a step's rows out by padded length, and no
 forward is larger than a micro-batch. Loss terms are rescaled to the full micro-batch, so
 DDP's gradient average is the single-GPU gradient, and each rank draws the collator's
 augmentations for the rows it skips, so option orders and phrasings match. Rank 0 alone
@@ -155,14 +155,14 @@ Teacher and replay labelling split into one process per GPU, then merge:
 
 ```bash
 for i in 0 1 2 3 4 5 6 7; do
-  CUDA_VISIBLE_DEVICES=$i python -m strands_decider.data.teacher --src data/multistep_v14.jsonl \
+  CUDA_VISIBLE_DEVICES=$i python -m training.data.teacher --src data/multistep_v14.jsonl \
     --out data/teacher_multistep_v14.jsonl --num-shards 8 --shard-index $i &
 done; wait
-python -m strands_decider.data.teacher --merge --num-shards 8 --src data/multistep_v14.jsonl \
+python -m training.data.teacher --merge --num-shards 8 --src data/multistep_v14.jsonl \
   --out data/teacher_multistep_v14.jsonl --shift-by data/train_v5.jsonl
 ```
 
-`strands_decider.data.replay` takes the same flags. Each shard labels whole batches of the
+`training.data.replay` takes the same flags. Each shard labels whole batches of the
 single-process batching, so the merge writes the single-process files byte for byte.
 
 With 80 GB GPUs, `gradient_checkpointing: false` and `precompute_frozen_kl: true` train

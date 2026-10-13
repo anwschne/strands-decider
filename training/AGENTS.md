@@ -119,7 +119,7 @@ training/aws/scripts/ssm-run.sh -t 1800 -f training/aws/image/verify-host.sh hob
 
 The same name goes to all three. The code lands in `/opt/hobson/code/hobson-<agent>`, with
 `data/` and `checkpoints/` as links to the NVMe scratch. `setup-host.sh` needs the training
-code in the archive: it reads the teacher revision from `src/strands_decider/data/teacher.py`.
+code in the archive: it reads the teacher revision from `training/data/teacher.py`.
 
 **Checks.** `sync-code.sh` prints the file count and the full commit SHA; compare the SHA to
 `git rev-parse <rev>`. `setup-host.sh` ends with `DONE setup`. `verify-host.sh` ends with
@@ -208,8 +208,8 @@ new run.
 | --- | --- | --- |
 | corpora | `run_recipe.sh cpu` with R; `sha256sum -c --strict data/SHA256SUMS` | every sha256 in `runs/recipe/sha256.txt` equals the record. Some `data/synthetic/*.jsonl` are committed with CRLF line endings, so for those compare rows (`json.loads` of every line, in order) and record the raw mismatch |
 | teacher | `run_recipe.sh teacher` with R | `data/teacher_multistep_v14*.jsonl` byte-identical to the record |
-| replay | `strands_decider.data.replay` with R from the frozen reference parent | byte-identical to the record's replay file |
-| bounded training | `strands-decider train` on 1 GPU, T and R, one config copy with a small `max_steps` and `log_every: 1`, frozen targets, PyTorch's deterministic settings, one warm-up run so Triton autotune choices are recorded and reused | initial weights, every step's gradient and weight digests, losses and final weights bit-identical for T vs T and for R vs T. The T vs T pair proves the setup is deterministic; without it, R vs T means nothing |
+| replay | `training.data.replay` with R from the frozen reference parent | byte-identical to the record's replay file |
+| bounded training | `python -m training.train` on 1 GPU, T and R, one config copy with a small `max_steps` and `log_every: 1`, frozen targets, PyTorch's deterministic settings, one warm-up run so Triton autotune choices are recorded and reused | initial weights, every step's gradient and weight digests, losses and final weights bit-identical for T vs T and for R vs T. The T vs T pair proves the setup is deterministic; without it, R vs T means nothing |
 | serving | `jevbench.sh` with R's code on the reference checkpoint ([5.](#5-evaluate-on-jevbench)) | `n_correct` equals the record and the per-task probabilities are identical |
 
 The repository has no gate tool. Keep yours outside the tree, record its sha256 in the

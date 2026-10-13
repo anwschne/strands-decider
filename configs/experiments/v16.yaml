@@ -1,6 +1,6 @@
 # v16: v14 plus generated document questions -- realistic workplace documents with 3-4
 # hard typed questions each, written by Qwen3.6-27B and kept when two answers by
-# Qwen3.5-397B-A17B agreed (data/generators/gen_documents_openrouter.py; src/strands_decider/data/generated.py).
+# Qwen3.5-397B-A17B agreed (data/generators/gen_documents_openrouter.py; training/data/generated.py).
 # Gold labels only. Pre-registered in research/preregistrations/PREREGISTRATION-v16.md. Trained under WSL2.
 
 train_files: ["data/train_v5.jsonl", "data/multistep_v14.jsonl", "data/generated_v16.jsonl"]

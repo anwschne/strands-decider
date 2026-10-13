@@ -16,7 +16,7 @@ features. A linear slot head is averaged directly (its logit is linear in its we
 an MLP slot head stacks its hidden units.
 
 The temperatures fitted on each checkpoint do not describe the soup: they are reset to
-1, so run `strands-decider calibrate` on the soup before evaluating or serving it.
+1, so run `python -m training.evaluate calibrate` on the soup before evaluating or serving it.
 """
 
 from __future__ import annotations
@@ -28,7 +28,13 @@ import shutil
 
 import torch
 
-from .modeling import CONFIG_NAME, StrandsDeciderConfig, base_revision, config_path, load_head_state
+from strands_decider.modeling import (
+    CONFIG_NAME,
+    StrandsDeciderConfig,
+    base_revision,
+    config_path,
+    load_head_state,
+)
 
 ADAPTER = "lora/adapter_model.safetensors"
 ADAPTER_CONFIG = "lora/adapter_config.json"
@@ -174,3 +180,37 @@ def soup(checkpoints: list[str], out: str, replace: bool = False) -> str:
     with open(os.path.join(out, "soup.json"), "w", encoding="utf-8") as fh:
         json.dump({"checkpoints": [os.path.abspath(c) for c in checkpoints]}, fh, indent=2)
     return out
+
+
+# ---------------------------------------------------------------- CLI
+
+
+def _main() -> None:
+    import typer
+    from rich.console import Console
+
+    console = Console()
+
+    def cmd(
+        checkpoints: list[str] = typer.Argument(
+            ..., help="Checkpoints of one recipe (other seeds)."
+        ),
+        out: str = typer.Option(
+            ..., "--out", help="Directory for the souped checkpoint: absent or empty."
+        ),
+        replace: bool = typer.Option(False, "--replace", help="Delete what --out holds first."),
+    ) -> None:
+        """Average same-recipe checkpoints by their LoRA updates and head logits.
+
+        The soup's temperatures are reset: run `python -m training.evaluate calibrate` next.
+        """
+        soup(checkpoints, out, replace=replace)
+        console.print(
+            f"[green]soup of {len(checkpoints)} checkpoints -> {out}[/] (calibrate it next)"
+        )
+
+    typer.run(cmd)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    _main()

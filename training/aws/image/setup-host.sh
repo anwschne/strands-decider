@@ -135,9 +135,9 @@ uv pip install -q --python $PY -c $H/constraints.txt -e "$H/code/${CODE_NAME}[de
 
 step "pre-download models into HF_HOME"
 # torso (configs/train*.yaml base_model) at main; teacher at the revision pinned in
-# src/strands_decider/data/teacher.py (--revision default), read from the synced code.
-TEACHER_REV=$(grep -oE '"--revision", default="[0-9a-f]{40}"' "$H/code/$CODE_NAME/src/strands_decider/data/teacher.py" | grep -oE '[0-9a-f]{40}') \
-  || { echo "ERROR: no pinned --revision default in src/strands_decider/data/teacher.py" >&2; exit 1; }
+# training/data/teacher.py (--revision default), read from the synced code.
+TEACHER_REV=$(grep -oE '"--revision", default="[0-9a-f]{40}"' "$H/code/$CODE_NAME/training/data/teacher.py" | grep -oE '[0-9a-f]{40}') \
+  || { echo "ERROR: no pinned --revision default in training/data/teacher.py" >&2; exit 1; }
 # Not `download && echo`: set -e does not stop at a failed command before `&&`.
 $H/venv/bin/hf download Qwen/Qwen3.5-2B-Base --quiet >/dev/null
 echo "downloaded Qwen/Qwen3.5-2B-Base@main"

@@ -15,8 +15,9 @@ import json
 import shutil
 import sys
 
-from strands_decider.data.format import read_jsonl
-from strands_decider.evaluate import (
+from strands_decider.modeling import StrandsDeciderModel
+from training.data.format import read_jsonl
+from training.evaluate import (
     collect_logits,
     fit_temperature_by_kind,
     partition_examples,
@@ -24,7 +25,6 @@ from strands_decider.evaluate import (
     sample_examples,
     summarise,
 )
-from strands_decider.modeling import StrandsDeciderModel
 
 SETS = ["holdout_v5_norule", "multistep_v14_eval", "generated_v16_eval", "generated_v18_eval",
         "adequacy_hs2_eval", "adequacy_gen_eval"]

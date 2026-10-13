@@ -8,7 +8,7 @@ scale). Install the package, point the commands at the published Hub id or at a 
 trained, then `strands-decider ask` or `strands-decider serve`. Pass `--device cuda`, `mps`, `cpu` or `mlx`
 explicitly; without it the CLI picks cuda, then mps, then cpu, and mlx only when asked for. A
 checkpoint from `training/recipe.sh all` is already calibrated; calibrate any other
-checkpoint with `strands-decider calibrate` before you serve it.
+checkpoint with `python -m training.evaluate calibrate` before you serve it.
 
 - [Environments for serving](#environments-for-serving): Linux with CUDA, a Mac, or CPU.
 - [Model artifact](#model-artifact): what a checkpoint holds, and the Hugging Face export.
@@ -111,7 +111,7 @@ then `strands-decider serve v1`. You can equally train your own with the recipe
 `checkpoints/hobson-2b-recipe`.
 
 A checkpoint directory holds these files. `StrandsDeciderModel.save_pretrained` in `modeling.py`
-writes them, `strands-decider calibrate` adds the temperatures, and `StrandsDeciderModel.load` reads them.
+writes them, `python -m training.evaluate calibrate` adds the temperatures, and `StrandsDeciderModel.load` reads them.
 
 | File | Contents |
 | --- | --- |
@@ -139,7 +139,7 @@ adapter, the tokenizer and configuration files, and a model card (`README.md`).
 folder as it reads a checkpoint, and the base weights still download separately from
 Hugging Face. Where a command takes a checkpoint path (`strands-decider serve`, `strands-decider ask`,
 `strands-decider info`), a Hub model repo id such as `StrandsAgents/strands-decider-2B-qwen3.5-v1-2610` also works: the loader
-downloads the repo to the Hub cache. `strands-decider calibrate` writes into the checkpoint, so it
+downloads the repo to the Hub cache. `python -m training.evaluate calibrate` writes into the checkpoint, so it
 needs a local directory. OUT can be a local directory or an `s3://` URI. The exporter does not upload to
 the Hugging Face Hub.
 

@@ -16,7 +16,7 @@ prompts (the other response to a prompt whose first is inadequate), so that the
 request alone does not predict the answer. The eval comes from HelpSteer2's
 validation split and training rows only from its train split.
 
-    python -m strands_decider.data.adequacy --raw data/raw/helpsteer2 \
+    python -m training.data.adequacy --raw data/raw/helpsteer2 \
         --out data/adequacy_hs2.jsonl --eval-out data/adequacy_hs2_eval.jsonl
 """
 from __future__ import annotations

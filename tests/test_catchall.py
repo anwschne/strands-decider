@@ -1,8 +1,8 @@
 """Catch-all option rows (src/strands_decider/data/catchall.py). No GPU."""
 import random
 
-from strands_decider.data.catchall import DESCRIPTION, NAMES, build, transform
-from strands_decider.data.format import Example
+from training.data.catchall import DESCRIPTION, NAMES, build, transform
+from training.data.format import Example
 
 
 def ex(label=1, task="ag_news", names=("world", "sports", "business", "tech")):

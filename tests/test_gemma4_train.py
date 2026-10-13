@@ -19,9 +19,9 @@ if not hasattr(transformers, "Gemma4UnifiedConfig"):
 
 from test_ddp import _examples  # noqa: E402
 
-import strands_decider.train as T  # noqa: E402
-from strands_decider.data.format import write_jsonl  # noqa: E402
+import training.train as T  # noqa: E402
 from strands_decider.modeling import HostEmbedding, StrandsDeciderModel  # noqa: E402
+from training.data.format import write_jsonl  # noqa: E402
 
 LAYERS = ["sliding_attention", "sliding_attention", "full_attention", "sliding_attention",
           "full_attention"]
