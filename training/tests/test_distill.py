@@ -1,4 +1,4 @@
-"""Teacher distributions where the teacher agrees with gold (src/strands_decider/data/distill.py)."""
+"""Teacher distributions where the teacher agrees with gold (training/data/distill.py)."""
 import json
 
 import pytest

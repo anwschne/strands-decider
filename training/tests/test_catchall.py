@@ -1,4 +1,4 @@
-"""Catch-all option rows (src/strands_decider/data/catchall.py). No GPU."""
+"""Catch-all option rows (training/data/catchall.py). No GPU."""
 import random
 
 from training.data.catchall import DESCRIPTION, NAMES, build, transform

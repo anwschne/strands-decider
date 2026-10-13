@@ -26,7 +26,7 @@ Stages (resumable; rerun the same command to continue):
              look-flawed kinds keep "looks rough" from predicting "no".
   2. verify  Each item judged twice.
   3. export  Kept items become strands-decider noul rows (task "gen:adequacy"), in the format of
-             src/strands_decider/data/adequacy.py. Batches in HELDOUT_CATEGORIES go to the eval
+             training/data/adequacy.py. Batches in HELDOUT_CATEGORIES go to the eval
              file only.
 
 Usage:

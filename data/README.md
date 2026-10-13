@@ -69,7 +69,7 @@ made here: single-turn prompts only; each response's helpfulness and correctness
 ratings thresholded into an adequate / inadequate label, with the middle band dropped;
 the two classes balanced; each prompt and response wrapped as a request and response
 with the question "does the response adequately answer the request?"
-(`src/strands_decider/data/adequacy.py`). The raw release is downloaded into
+(`training/data/adequacy.py`). The raw release is downloaded into
 `data/raw/helpsteer2/` (git-ignored) and is not redistributed. The generated adequacy
 items (`data/generators/gen_adequacy/`) come from the same Apache-2.0 models as the generated
 documents.

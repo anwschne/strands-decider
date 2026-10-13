@@ -308,7 +308,7 @@ def verify_one(client, args, doc: dict, qi: int, attempt: int) -> str | None:
 # ---- stage 3: export --------------------------------------------------------------------
 
 def to_example(doc: dict, q: dict) -> dict:
-    """One strands-decider Example (src/strands_decider/data/format.py); label indexes the canonical options."""
+    """One strands-decider Example (training/data/format.py); label indexes the canonical options."""
     state = f"{doc['title']}\n\n{doc['document'].strip()}\n\nCase: {q['case'].strip()}"
     task = f"gen:{q['skill']}"
     if q["type"] == "noul":
