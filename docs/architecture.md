@@ -237,7 +237,7 @@ src/strands_decider/              -- published package (inference only)
 training/                         -- not published; run as `python -m training.<module>`
   train.py        LoRA + readout training loop (`python -m training.train`)
   evaluate.py     accuracy, ECE, NLL, MAE; temperature fitting; calib/test split
-                  (`python -m training.evaluate evaluate|calibrate`)
+                  (`python -m training.evaluate eval|calibrate`)
   soup.py         average same-recipe checkpoints (`python -m training.soup`)
   distributed.py  multi-GPU training under torchrun: the 1-GPU steps, shared across ranks
   data/           corpus building and inspection (`python -m training.data …`)

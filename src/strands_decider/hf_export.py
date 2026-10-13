@@ -346,7 +346,7 @@ OVERALL = re.compile(r"^overall n=([\d,]+) acc=(\d\.\d+) ece=(\d\.\d+) nll=(\d\.
 
 
 def internal_evals(run_dir: str | None) -> dict[str, dict]:
-    """What the run's eval logs report: `python -m training.evaluate evaluate`'s `overall` line
+    """What the run's eval logs report: `python -m training.evaluate eval`'s `overall` line
     (held-out short tasks) and each `name  0.xxx  (n=...)` line of evaluation/multistep_eval.py.
     One log can
     hold several multistep_eval runs; each starts a numbered block (`[2]`, ...), so

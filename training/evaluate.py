@@ -58,7 +58,7 @@ def partition_examples(examples: list[Example], part: str, *, seed: int = 0) -> 
 
     Temperature must not be fitted on the same rows it is then scored on -- doing so
     reports a calibration error the model would not achieve on unseen data. Rather
-    than making the caller juggle two files, both `python -m training.evaluate calibrate` and `python -m training.evaluate evaluate`
+    than making the caller juggle two files, both `python -m training.evaluate calibrate` and `python -m training.evaluate eval`
     partition the same file the same way, so `--split calib` and `--split test` are
     guaranteed disjoint across separate invocations.
 
@@ -486,8 +486,8 @@ def _fmt_temperature(t: float | dict[str, float]) -> str:
     return f"{t:.3f}"
 
 
-@app.command("evaluate")
-def evaluate_cmd(
+@app.command("eval")
+def eval_cmd(
     checkpoint: str = typer.Argument(...),
     data: str = typer.Option(..., "--data"),
     limit: int = typer.Option(4000),
@@ -499,7 +499,10 @@ def evaluate_cmd(
         help="Half of --data to score: test|calib|all. Disjoint from `calibrate`.",
     ),
 ) -> None:
-    """Accuracy, ECE, NLL and score MAE, broken down by task and confidence band."""
+    """Accuracy, ECE, NLL and score MAE, broken down by task and confidence band.
+
+    Defaults to the `test` half, which `python -m training.evaluate calibrate` does not fit on.
+    """
     examples = sample_examples(partition_examples(list(read_jsonl(data)), split), limit)
     report = evaluate_checkpoint(
         checkpoint, examples, batch_size=batch_size, apply_temperature=not raw
@@ -541,10 +544,17 @@ def calibrate_cmd(
     batch_size: int = typer.Option(16),
     split: str = typer.Option(
         "calib",
-        help="Half of --data to use: calib|test|all. Disjoint from `evaluate --split test`.",
+        help="Half of --data to use: calib|test|all. Disjoint from `eval --split test`.",
     ),
 ) -> None:
-    """Fit a temperature on held-out data and write it into the checkpoint."""
+    """Fit a temperature on held-out data and write it into the checkpoint.
+
+    Run this before serving. Without it, `confidence` is whatever the raw head
+    happened to produce, and the documented thresholds will not hold.
+
+    Defaults to the `calib` half so that `python -m training.evaluate eval --split test`
+    scores rows the temperature was never fitted on.
+    """
     examples = sample_examples(partition_examples(list(read_jsonl(data)), split), limit)
     result = calibrate_checkpoint(checkpoint, examples, batch_size=batch_size)
     console.print(f"[green]global temperature = {result['temperature']:.4f}[/]")

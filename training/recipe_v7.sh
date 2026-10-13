@@ -70,10 +70,10 @@ evaluate() {
   # `test` half, disjoint from the rows calibration was fitted on.
   mkdir -p reports
   echo "############ eval: unseen tasks ############"
-  "$PY" -u -m training.evaluate evaluate "$CKPT" --data data/holdout_v5_norule.jsonl --limit 6000 \
+  "$PY" -u -m training.evaluate eval "$CKPT" --data data/holdout_v5_norule.jsonl --limit 6000 \
     --out reports/recipe_heldout.json
   echo "############ eval: tasks in the training mix ############"
-  "$PY" -u -m training.evaluate evaluate "$CKPT" --data data/train_v5.jsonl --limit 6000 --split all \
+  "$PY" -u -m training.evaluate eval "$CKPT" --data data/train_v5.jsonl --limit 6000 --split all \
     --out reports/recipe_indist.json
 }
 

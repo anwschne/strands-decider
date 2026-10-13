@@ -196,7 +196,7 @@ calibrate() { verify data/holdout_v5_norule.jsonl; "$PY" -u -m training.evaluate
 evaluate() {
   verify data/holdout_v5_norule.jsonl data/multistep_v14_eval.jsonl
   mkdir -p reports
-  "$PY" -u -m training.evaluate evaluate "$CKPT" --data data/holdout_v5_norule.jsonl --limit 6000 --out reports/recipe_heldout.json
+  "$PY" -u -m training.evaluate eval "$CKPT" --data data/holdout_v5_norule.jsonl --limit 6000 --out reports/recipe_heldout.json
   "$PY" -m evaluation.multistep_eval "$CKPT"
   "$PY" -m evaluation.multistep_eval "$CKPT" --data data/generated_v16_eval.jsonl
   "$PY" -m evaluation.multistep_eval "$CKPT" --data data/generated_v18_eval.jsonl

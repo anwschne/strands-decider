@@ -19,7 +19,7 @@ script also runs on its own:
 
 | Script | What it measures |
 | --- | --- |
-| `python -m training.evaluate evaluate` (the CLI) | Accuracy, ECE, NLL and score MAE on the held-out classification tasks, by task, primitive and confidence band |
+| `python -m training.evaluate eval` (the CLI) | Accuracy, ECE, NLL and score MAE on the held-out classification tasks, by task, primitive and confidence band |
 | [`multistep_eval.py`](multistep_eval.py) | Accuracy on the multi-step evaluation sets, per source. HotpotQA is the transfer test |
 | [`question_sensitivity.py`](question_sensitivity.py) | Whether the answer follows the question, with the frozen torso as its own baseline |
 | [`pair_eval.py`](pair_eval.py) | Paraphrase consistency and instruction-flip pair accuracy on adjacent pairs (v20) |
@@ -40,7 +40,7 @@ Paths are relative to the repository root unless they are links. A module path s
 These commands are step 5 of the [training steps](../training/steps.md#5-evaluate):
 
 ```bash
-python -m training.evaluate evaluate checkpoints/hobson-2b-recipe --data data/holdout_v5_norule.jsonl \
+python -m training.evaluate eval checkpoints/hobson-2b-recipe --data data/holdout_v5_norule.jsonl \
   --limit 6000 --out reports/recipe_heldout.json
 python -m evaluation.multistep_eval checkpoints/hobson-2b-recipe
 python -m evaluation.question_sensitivity checkpoints/hobson-2b-recipe
