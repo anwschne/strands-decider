@@ -31,13 +31,6 @@ jobs:
     steps:
       - run: echo "No src/tests changes; skipping tests."
 
-  cuda:
-    name: cuda (py3.12)
-    if: vars.GPU_RUNNER_LABEL != ''
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "No src/tests changes; skipping tests."
-
   lint:
     name: lint
     runs-on: ubuntu-latest
