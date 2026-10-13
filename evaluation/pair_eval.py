@@ -1,6 +1,6 @@
 """Paired evaluations (v20), where rows come in adjacent pairs.
 
-    python evaluation/pair_eval.py CHECKPOINT FILE [FILE ...]
+    python -m evaluation.pair_eval CHECKPOINT FILE [FILE ...]
 
   data/para_pairs_*_eval.jsonl  (original wording, a checked paraphrase), same label:
                                 `same_answer` is paraphrase consistency (v20 prediction 1)

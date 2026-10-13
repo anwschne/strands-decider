@@ -7,7 +7,7 @@ guessing each claim's most common label scores 0.679 on it.
 
 Rows whose prompt exceeds the model's window are skipped, never truncated.
 
-    python evaluation/multistep_eval.py CHECKPOINT [--data data/multistep_v14_eval.jsonl]
+    python -m evaluation.multistep_eval CHECKPOINT [--data data/multistep_v14_eval.jsonl]
 """
 import argparse
 import json

@@ -21,7 +21,7 @@ Training on a corpus where each state is asked one fixed question taught the mod
 that the question never changes the answer. Lower "same as real" is better; so is
 lower capture on NOT and higher accuracy on first / last.
 
-    python evaluation/question_sensitivity.py CHECKPOINT [CHECKPOINT ...] [--n 200]
+    python -m evaluation.question_sensitivity CHECKPOINT [CHECKPOINT ...] [--n 200]
         [--torso-tokens] [--out results.json]
 """
 import argparse

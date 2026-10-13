@@ -8,7 +8,7 @@ That makes it the sharpest available test for the failure v9 exhibited.
 
 Pairs are consecutive rows: `generate_pairs` writes each pair's two halves together.
 
-    python evaluation/pair_accuracy.py CHECKPOINT EVAL.jsonl
+    python -m evaluation.pair_accuracy CHECKPOINT EVAL.jsonl
 """
 import json
 import sys

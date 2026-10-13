@@ -5,7 +5,7 @@ document back as a model would, recompute the answer independently, and compare 
 the stored label. Also checks the property the whole design rests on -- that the two
 halves of a pair differ in only a few lines and have different answers.
 
-    python data/checks/verify_synth_pairs.py [n_pairs] [train|heldout]
+    python -m data.checks.verify_synth_pairs [n_pairs] [train|heldout]
 """
 import difflib
 import re

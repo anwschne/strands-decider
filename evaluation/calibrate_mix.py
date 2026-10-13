@@ -3,7 +3,7 @@ held-out set, and score old against new on their test halves
 (research/preregistrations/PREREGISTRATION-v19-calmix.md). Score keeps its temperature. Writes the refitted
 temperatures into a copy of the checkpoint, never the original.
 
-    python evaluation/calibrate_mix.py [CHECKPOINT] [COPY]
+    python -m evaluation.calibrate_mix [CHECKPOINT] [COPY]
       (defaults: checkpoints/hobson-2b-v19 checkpoints/hobson-2b-v19-calmix)
 
 The six sets are built by recipe.sh (build, multistep, generated, adequacy); halves are
