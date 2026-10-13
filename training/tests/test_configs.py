@@ -20,7 +20,7 @@ import pytest
 from strands_decider.modeling import StrandsDeciderConfig
 from training.train import TrainConfig
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CONFIGS = sorted(glob.glob(os.path.join(ROOT, "configs", "**", "*.yaml"), recursive=True))
 FIXTURE = os.path.join(ROOT, "tests", "fixtures", "v19-p5-run1")
 

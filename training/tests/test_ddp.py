@@ -34,7 +34,7 @@ from training.data.format import Example, write_jsonl
 from training.distributed import plan_step
 from training.train import TrainConfig
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 WORDS = ("the contract states that payment is due within thirty days of delivery and any "
          "dispute must be raised in writing before the invoice date which party breached "

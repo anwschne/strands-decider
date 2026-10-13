@@ -13,7 +13,7 @@ import subprocess
 
 import pytest
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RUNNER = os.path.join(ROOT, "training", "run_recipe.sh")
 
 pytestmark = pytest.mark.skipif(shutil.which("bash") is None, reason="needs bash")
