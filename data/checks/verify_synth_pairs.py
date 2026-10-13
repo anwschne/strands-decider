@@ -12,7 +12,7 @@ import re
 import sys
 from collections import Counter, defaultdict
 
-from strands_decider.data.synth_pairs import SKINS, generate_pairs
+from training.data.synth_pairs import SKINS, generate_pairs
 
 
 def _cells(line: str):

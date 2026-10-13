@@ -131,7 +131,7 @@ def _gemma4(size: str, revision: str) -> Base:
         example="",
         teacher_route="They are training\n  targets, next to a frozen-KL anchor toward the v19 "
         "checkpoint's own distributions\n  (a Qwen3.5-2B decider; `kl_frozen_reference`).",
-        trained_by="""Trained by `strands-decider train` of the code repository under `torchrun` on a `{host}`
+        trained_by="""Trained by `python -m training.train` of the code repository under `torchrun` on a `{host}`
 host ({gpu}): recipe wall clock {wall} s, training stage {train} s. Configs:
 `train_config.json`, `training/configs/`.""",
         retrain="""To retrain, train with the recipe in `train_config.json` on one 8-GPU H100 host, after
@@ -346,8 +346,9 @@ OVERALL = re.compile(r"^overall n=([\d,]+) acc=(\d\.\d+) ece=(\d\.\d+) nll=(\d\.
 
 
 def internal_evals(run_dir: str | None) -> dict[str, dict]:
-    """What the run's eval logs report: `strands-decider eval`'s `overall` line (held-out short
-    tasks) and each `name  0.xxx  (n=...)` line of evaluation/multistep_eval.py. One log can
+    """What the run's eval logs report: `python -m training.evaluate evaluate`'s `overall` line
+    (held-out short tasks) and each `name  0.xxx  (n=...)` line of evaluation/multistep_eval.py.
+    One log can
     hold several multistep_eval runs; each starts a numbered block (`[2]`, ...), so
     same-named sets from different eval files do not collide."""
     out: dict[str, dict] = {}

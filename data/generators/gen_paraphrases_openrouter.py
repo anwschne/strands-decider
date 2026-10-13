@@ -19,7 +19,7 @@ for any case) or DIFFERENT; only SAME paraphrases are kept. For yes/no questions
 paraphrase that flips polarity ("Is X permitted?" -> "Is X prohibited?") is DIFFERENT.
 
 Output: paraphrases.jsonl, one {"question": ..., "paraphrases": [...]} per distinct
-question text; `python -m strands_decider.data.generated --paraphrases` attaches them.
+question text; `python -m training.data.generated --paraphrases` attaches them.
 
 Usage:
     export OPENROUTER_API_KEY=...

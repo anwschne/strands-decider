@@ -197,17 +197,17 @@ evaluate() {
   verify data/holdout_v5_norule.jsonl data/multistep_v14_eval.jsonl
   mkdir -p reports
   "$PY" -u -m training.evaluate evaluate "$CKPT" --data data/holdout_v5_norule.jsonl --limit 6000 --out reports/recipe_heldout.json
-  "$PY" evaluation/multistep_eval.py "$CKPT"
-  "$PY" evaluation/multistep_eval.py "$CKPT" --data data/generated_v16_eval.jsonl
-  "$PY" evaluation/multistep_eval.py "$CKPT" --data data/generated_v18_eval.jsonl
-  "$PY" evaluation/multistep_eval.py "$CKPT" --data data/adequacy_hs2_eval.jsonl
-  "$PY" evaluation/multistep_eval.py "$CKPT" --data data/adequacy_gen_eval.jsonl
+  "$PY" -m evaluation.multistep_eval "$CKPT"
+  "$PY" -m evaluation.multistep_eval "$CKPT" --data data/generated_v16_eval.jsonl
+  "$PY" -m evaluation.multistep_eval "$CKPT" --data data/generated_v18_eval.jsonl
+  "$PY" -m evaluation.multistep_eval "$CKPT" --data data/adequacy_hs2_eval.jsonl
+  "$PY" -m evaluation.multistep_eval "$CKPT" --data data/adequacy_gen_eval.jsonl
   # v20's evaluations, where their files have been built (`catchall`, `generated`)
   if [ -f data/catchall_v20_eval.jsonl ]; then
-    "$PY" evaluation/multistep_eval.py "$CKPT" --data data/catchall_v20_eval.jsonl
+    "$PY" -m evaluation.multistep_eval "$CKPT" --data data/catchall_v20_eval.jsonl
   fi
   if [ -f data/flips_v20_eval.jsonl ]; then
-    "$PY" evaluation/pair_eval.py "$CKPT" data/para_pairs_v16_eval.jsonl data/para_pairs_v18_eval.jsonl \
+    "$PY" -m evaluation.pair_eval "$CKPT" data/para_pairs_v16_eval.jsonl data/para_pairs_v18_eval.jsonl \
       data/flips_v20_eval.jsonl
   fi
 }

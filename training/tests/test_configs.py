@@ -8,7 +8,7 @@ comparing the parsed configs, not the text.
 
 tests/fixtures/v19-p5-run1/ holds the hobson_config.json and train_config.json that the
 v19 checkpoint saved: hyperparameters and relative paths only. A saved train_config.json
-is a reproduction path (`strands-decider train --config <ckpt>/train_config.json`).
+is a reproduction path (`python -m training.train --config <ckpt>/train_config.json`).
 """
 
 import dataclasses

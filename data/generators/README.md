@@ -12,7 +12,7 @@ documents, adequacy items or flips holds the documents or batches, every verifie
 (`verify.jsonl`), the kept rows (`gen_train.jsonl`, `gen_eval.jsonl`) and a `stats.json`.
 The paraphrase exports hold the candidates and the checked paraphrases. A run also writes
 its API errors to `failures.jsonl`; those logs are not committed.
-`python -m strands_decider.data.generated` turns an export into the training and evaluation files
+`python -m training.data.generated` turns an export into the training and evaluation files
 in `data/synthetic/`. The commands are in the comments of `recipe.sh`.
 
 | Export directory | Generator | Writer and verifier | Recipe input |

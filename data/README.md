@@ -50,7 +50,7 @@ multi-step rows (v14) come from:
 - **HotpotQA** (Yang et al., EMNLP 2018): CC BY-SA 4.0; evaluation only, never trained on.
 
 The raw releases are downloaded into `data/raw/` (git-ignored) and converted by
-`python -m strands_decider.data.multistep`.
+`python -m training.data.multistep`.
 
 The generated rows (v16, v18) were written by **Qwen3.6-27B** and verified by
 **Qwen3.5-397B-A17B**, both open-weight under Apache-2.0, through OpenRouter; the
@@ -96,7 +96,7 @@ that the v20 preregistration names. The file was labelled on the 91,408 short-ta
 `formality` 4,000) were removed before publication, pending a check of the rights on the
 Yelp data, and `distill` never kept them, so its output is the same. v12
 (`configs/experiments/v12.yaml`) trained on the full file; to rebuild it, run
-`python -m strands_decider.data.teacher` with the command in that config. Whether this `data/train_v5.jsonl` is byte-identical to
+`python -m training.data.teacher` with the command in that config. Whether this `data/train_v5.jsonl` is byte-identical to
 the original v5 file is not verified, because no hash of the original file was recorded.
 
 The committed `generated_v16.jsonl`, `generated_v16_eval.jsonl` and

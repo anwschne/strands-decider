@@ -31,7 +31,7 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 # Slots the head can address. This must match the largest option count the corpus
 # actually contains: slots beyond that never receive a gradient and would ship at
-# their random initialisation. `strands-decider data build --max-options 24` is the matching
+# their random initialisation. `python -m training.data build --max-options 24` is the matching
 # default. Questions with more options are rejected, not silently truncated.
 DEFAULT_NUM_SLOTS = 24
 
@@ -88,7 +88,7 @@ class StrandsDeciderConfig:
     # existing checkpoint keeps loading unchanged.
     head_type: str = "slot"
     pointer_dim: int = 256
-    # Populated after `strands-decider calibrate` runs; 1.0 is a no-op. `temperature` is the
+    # Populated after `python -m training.evaluate calibrate` runs; 1.0 is a no-op. `temperature` is the
     # fallback; `temperature_by_kind` overrides it per primitive where fitted.
     # One global scalar cannot serve all three: noul/choice/score sit at very
     # different accuracies, so a temperature good for one over-softens another.

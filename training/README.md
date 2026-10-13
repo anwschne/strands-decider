@@ -138,8 +138,8 @@ window with several long questions in one forward can run a Gemma torso out of m
 configs train under `torchrun`:
 
 ```bash
-torchrun --standalone --nproc_per_node=8 -m strands_decider.cli train --config configs/train-parent.yaml
-torchrun --standalone --nproc_per_node=8 -m strands_decider.cli train --config configs/train.yaml
+torchrun --standalone --nproc_per_node=8 -m training.train --config configs/train-parent.yaml
+torchrun --standalone --nproc_per_node=8 -m training.train --config configs/train.yaml
 ```
 
 Each optimizer step trains the same 32 rows, in the same micro-batches, as one GPU does

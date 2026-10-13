@@ -1,6 +1,6 @@
 """Multi-GPU training under torchrun (DDP) that trains exactly what one GPU trains.
 
-    torchrun --standalone --nproc_per_node=8 -m strands_decider.cli train --config configs/train.yaml
+    torchrun --standalone --nproc_per_node=8 -m training.train --config configs/train.yaml
 
 The rule: an N-GPU run takes the optimizer steps a 1-GPU run takes. Step s is micro-batches
 s*grad_accum .. s*grad_accum + grad_accum - 1 of the 1-GPU sampler order, always, and the

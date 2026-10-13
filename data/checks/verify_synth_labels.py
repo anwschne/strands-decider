@@ -12,7 +12,7 @@ import re
 import sys
 from datetime import date
 
-from strands_decider.data import synth as G
+from training.data import synth as G
 
 LB = 0.45359237
 
