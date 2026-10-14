@@ -22,8 +22,9 @@ commands are written for WSL2; on native Linux, skip the `wsl.exe` line and the 
 - [`aws/`](aws/README.md): one EC2 host over SSM, and the measured stage timings.
 - [`AGENTS.md`](AGENTS.md): runbooks for a coding agent that runs, operates or verifies training.
 - [`recipe_v7.sh`](recipe_v7.sh) and [`legacy-v7.md`](legacy-v7.md): the v7 route on Windows.
-- [`../configs/`](../configs/): `train.yaml`, its parent `train-parent.yaml`, and
-  `experiments/` for the preregistered runs.
+- [`../configs/`](../configs/): `train.yaml`, its parent `train-parent.yaml`,
+  `experiments/` for the preregistered runs, and `v1/` for the v1 releases
+  ([The v1 release recipes](#the-v1-release-recipes)).
 - [`../data/README.md`](../data/README.md): what the recipe downloads, and what is committed.
 
 Evaluation is in [evaluation/README.md](../evaluation/README.md), serving in
@@ -234,3 +235,29 @@ The steps, each with its command, are in [steps.md](steps.md):
 [2. Label with the teacher](steps.md#2-label-with-the-teacher), [3. Train](steps.md#3-train),
 [4. Calibrate](steps.md#4-calibrate), [5. Evaluate](steps.md#5-evaluate) and
 [6. Serve](steps.md#6-serve).
+
+## The v1 release recipes
+
+`configs/v1/` holds one config for each released v1 model: the seed-0 config of its
+training run, with only `output_dir` and the comments changed. Each release is a soup of
+three runs of that config, seeds 0, 1 and 2, which differ only in `seed`. The soup was
+calibrated afterwards. The header of each config lists its inputs, their sha256, and the
+rerun commands: `recipe.sh train` once per seed, then `python -m training.soup` and
+`python -m training.evaluate calibrate`. All five configs keep the answers close to the
+released v19 (`kl_frozen_reference: checkpoints/v19-ref`); `hf download
+StrandsAgents/strands-decider-2B-hobson-v19 --local-dir checkpoints/v19-ref` gets it.
+
+| release | config | base model | data | teacher | to rerun it |
+| --- | --- | --- | --- | --- | --- |
+| `strands-decider-2B-qwen3.5-v1-2610` | `configs/v1/strands-decider-2B-qwen3.5-v1-2610.yaml` | `Qwen/Qwen3.5-2B-Base` | the v1 mix, 246,678 rows | gemma-4-31B-it (`data/teacher_g28.jsonl`) | the four mix files that are not v21's (`train_v5_nc`, `code_g28`, `gapfill_g28`, `rule_apply_g28`) and the teacher file: none is in this repository or built by it |
+| `strands-decider-E2B-gemma4-v1-2610` | `configs/v1/strands-decider-E2B-gemma4-v1-2610.yaml` | `google/gemma-4-E2B-it` | v21's data plus code tasks, 135,602 rows | Qwen3.5-4B (`data/teacher_v20.jsonl`, from `recipe.sh distill`) | the code-task rows, `data/code_v27.jsonl`, which are built outside this repository |
+| `strands-decider-E4B-gemma4-v1-2610` | `configs/v1/strands-decider-E4B-gemma4-v1-2610.yaml` | `google/gemma-4-E4B-it` | the same | the same | the same |
+| `strands-decider-12B-gemma4-v1-2610` | `configs/v1/strands-decider-12B-gemma4-v1-2610.yaml` | `google/gemma-4-12B-it` | the same | the same | the same |
+| `strands-decider-26B-A4B-gemma4-v1-2610` | `configs/v1/strands-decider-26B-A4B-gemma4-v1-2610.yaml` | `google/gemma-4-26B-A4B-it` | the same | the same | the same |
+
+Everything else the five configs read is built by `training/recipe.sh` (`build`, `fetch`,
+`multistep`, `generated`, `adequacy`, `distill`). The config headers and `data/SHA256SUMS` give the sha256 of
+each file the runs read, so a rebuild can be checked against them. The runs used the code of the development repository, not this repository's `main`; the settings
+they use are on `main` (`kl_frozen_reference`, the Gemma 4 torsos and the soup). The
+four Gemma 4 configs differ only in `base_model` and `output_dir`
+(`training/tests/test_configs.py`).
