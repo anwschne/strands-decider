@@ -919,6 +919,8 @@ def test_collect_logits_masks_the_padded_columns():
             head_type = "pointer"
             max_length = 3072
 
+        torso = torch.nn.Module()  # no parameters: the CPU upcast has nothing to cast
+
         def eval(self):
             return self
 

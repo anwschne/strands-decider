@@ -40,6 +40,7 @@ from rich.console import Console
 from rich.table import Table
 from torch.utils.data import DataLoader
 
+from strands_decider.infer import EngineConfig, SystemOneEngine
 from strands_decider.modeling import (
     MASK_VALUE,
     StrandsDeciderModel,
@@ -132,7 +133,9 @@ def collect_logits(
     The logits are untempered. In each row, the columns at or past the row's option
     count hold MASK_VALUE, so a raw argmax over the row lands on one of its options.
     """
-    model.eval().to(device)
+    # Prepare the model as serving does on this device (MPS/CPU kernels, fp32 torso on CPU),
+    # so `eval` and `calibrate` measure the numbers `serve` returns.
+    model = SystemOneEngine(model, EngineConfig(device=device)).model
     coll = SystemOneCollator(
         model.tokenizer,
         CollatorConfig(
@@ -486,6 +489,14 @@ def _fmt_temperature(t: float | dict[str, float]) -> str:
     return f"{t:.3f}"
 
 
+def _device(device: str | None) -> str:
+    from strands_decider.cli import resolve_device
+
+    if device == "mlx":  # the MLX backend serves only; it has no logits path for evaluation
+        raise typer.BadParameter("--device mlx is for serving; evaluate on cuda, mps or cpu")
+    return resolve_device(device)
+
+
 @app.command("eval")
 def eval_cmd(
     checkpoint: str = typer.Argument(...),
@@ -507,12 +518,10 @@ def eval_cmd(
 
     Defaults to the `test` half, which `python -m training.evaluate calibrate` does not fit on.
     """
-    from strands_decider.cli import resolve_device
-
     examples = sample_examples(partition_examples(list(read_jsonl(data)), split), limit)
     report = evaluate_checkpoint(
         checkpoint, examples, batch_size=batch_size, apply_temperature=not raw,
-        device=resolve_device(device),
+        device=_device(device),
     )
     overall = report["overall"]
     console.print(
@@ -566,11 +575,9 @@ def calibrate_cmd(
     Defaults to the `calib` half so that `python -m training.evaluate eval --split test`
     scores rows the temperature was never fitted on.
     """
-    from strands_decider.cli import resolve_device
-
     examples = sample_examples(partition_examples(list(read_jsonl(data)), split), limit)
     result = calibrate_checkpoint(
-        checkpoint, examples, batch_size=batch_size, device=resolve_device(device),
+        checkpoint, examples, batch_size=batch_size, device=_device(device),
     )
     console.print(f"[green]global temperature = {result['temperature']:.4f}[/]")
     by_kind = result.get("temperature_by_kind") or {}

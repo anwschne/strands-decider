@@ -11,7 +11,9 @@ checkpoint from `training/recipe.sh all` is already calibrated; calibrate any ot
 checkpoint with `python -m training.evaluate calibrate` before you serve it.
 
 `eval` and `calibrate` also accept `--device cuda`, `mps`, or `cpu` and use the same
-cuda > mps > cpu selection when omitted. They use torch; MLX is an `ask`/`serve` backend only.
+cuda > mps > cpu selection when omitted. They use torch; MLX is an `ask`/`serve` backend only. They
+prepare the model as `serve` does on that device (the MPS and CPU kernels, an fp32 torso on
+CPU), so they report the numbers serving returns. `--device mlx` is refused.
 
 - [Environments for serving](#environments-for-serving): Linux with CUDA, a Mac, or CPU.
 - [Model artifact](#model-artifact): what a checkpoint holds, and the Hugging Face export.
