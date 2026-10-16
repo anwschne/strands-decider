@@ -19,7 +19,7 @@ from test_ddp import (
 )
 
 import training.train as T
-from strands_decider.modeling import StrandsDeciderModel
+from strands_decider.modeling import StrandsDeciderConfig, StrandsDeciderModel
 from training.data.collate import CollatorConfig, SystemOneCollator
 from training.data.format import load_examples, write_jsonl
 from training.soup import soup
@@ -172,6 +172,13 @@ def test_an_architecture_other_than_the_checkpoint_is_refused(corpus, tmp_path, 
         _train(corpus, tmp_path, monkeypatch, **over)
 
 
+def test_every_conflict_is_named_in_one_error(corpus, tmp_path, monkeypatch):
+    """A copied release recipe sets several of them: the error names all, not the first."""
+    with pytest.raises(ValueError,
+                       match=r"sets pointer_dim=32.*sets lora_r=4.*remove pointer_dim, lora_r from"):
+        _train(corpus, tmp_path, monkeypatch, pointer_dim=32, lora_r=4)
+
+
 def test_a_yaml_key_at_its_default_value_still_conflicts(corpus, tmp_path, monkeypatch):
     """A config copied from configs/train.yaml sets lora_r: 16, the default value."""
     path = tmp_path / "c.yaml"
@@ -179,6 +186,15 @@ def test_a_yaml_key_at_its_default_value_still_conflicts(corpus, tmp_path, monke
                     f"train_files: [{corpus / 'a.jsonl'}]\n")
     with pytest.raises(ValueError, match="sets lora_r=16, the checkpoint has 2"):
         _train(corpus, tmp_path, monkeypatch, cfg=T.TrainConfig.from_yaml(str(path)))
+
+
+def test_a_yaml_null_lora_targets_is_the_default_list(corpus, tmp_path):
+    """lora_targets: null is the model's default list, the list the checkpoint has."""
+    path = tmp_path / "c.yaml"
+    path.write_text(f"init_from: {corpus / 's0'}\nlora_targets: null\n")
+    cfg = T.TrainConfig.from_yaml(str(path))
+    T._init_from(cfg)
+    assert cfg.lora_targets == StrandsDeciderConfig().lora_targets
 
 
 def test_head_init_cannot_replace_the_trained_head(corpus, tmp_path, monkeypatch):

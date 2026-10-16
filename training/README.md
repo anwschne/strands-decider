@@ -227,8 +227,8 @@ python -m training.evaluate calibrate checkpoints/my-e4b --data <held-out rows>
   `pointer_dim`, `head_hidden`, `use_lora`, `lora_r`, `lora_alpha`, `lora_targets` and
   `force_bos` come from the checkpoint's `strands_decider_config.json`. Leave them out of
   the config. A config that sets one of them to another value stops before the model loads,
-  with an error that names the key. A key in the YAML file counts as set even at its default
-  value, so a copy of `configs/train.yaml` (`lora_r: 16`) stops on a released soup.
+  with one error that names every such key. A key in the YAML file counts as set even at its
+  default value, so a copy of `configs/train.yaml` (`lora_r: 16`) stops on a released soup.
   `max_length` is the checkpoint's unless the config sets it. Everything else (data,
   learning rates, epochs, `head_dropout`, `ordinal_smoothing`, the KL terms) is the
   config's, and is saved with the result. `head_lr` defaults to 1e-3, a value chosen for a
@@ -238,7 +238,8 @@ python -m training.evaluate calibrate checkpoints/my-e4b --data <held-out rows>
 - **Temperatures** are reset to 1 at the start, as for a soup: calibrate the result before
   you evaluate or serve it.
 - **The frozen-KL anchor.** With `kl_frozen_reference` set to the `init_from` checkpoint,
-  the KL term starts at 0 and keeps the fine-tune close to the released model's answers.
+  the KL term starts near 0 (exactly 0 with dropout off) and keeps the fine-tune close to
+  the released model's answers.
   Without `kl_frozen_reference`, the anchor is the base torso's own option-number readout,
   with the adapter disabled, as in a run from the base model.
 - **The result is a normal checkpoint**: `strands-decider serve` and `ask`,

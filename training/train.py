@@ -120,6 +120,7 @@ class TrainConfig:
     lr: float = 1e-4
     # The head is randomly initialised while LoRA starts as a no-op, so the head
     # needs a much larger step or the torso adapts to a head that is still noise.
+    # With init_from both start trained, and no value is measured for that yet.
     head_lr: float = 1e-3
     weight_decay: float = 0.01
     warmup_ratio: float = 0.03
@@ -192,15 +193,20 @@ def _init_from(cfg: TrainConfig) -> StrandsDeciderModel:
     """
     path = checkpoint_dir(cfg.init_from or "")
     ck = StrandsDeciderConfig.from_json(config_path(path))
+    conflicts = []
     for name in INIT_FROM_ARCH:
         mine, theirs = getattr(cfg, name), getattr(ck, name)
         if name == "lora_targets":  # an order-free list; None is the model's default list
-            mine, theirs = sorted(mine or []), sorted(theirs)
+            mine, theirs = sorted(mine or StrandsDeciderConfig().lora_targets), sorted(theirs)
         if _given(cfg, name) and mine != theirs:
-            raise ValueError(f"init_from {cfg.init_from}: the config sets {name}={mine!r}, the "
-                             f"checkpoint has {theirs!r}. The checkpoint fixes the architecture: "
-                             f"remove {name} from the config.")
+            conflicts.append((name, mine, theirs))
         setattr(cfg, name, getattr(ck, name))
+    if conflicts:
+        sets = "; ".join(f"the config sets {n}={m!r}, the checkpoint has {t!r}"
+                         for n, m, t in conflicts)
+        raise ValueError(f"init_from {cfg.init_from}: {sets}. The checkpoint fixes the "
+                         f"architecture: remove {', '.join(n for n, _, _ in conflicts)} "
+                         "from the config.")
     if not ck.use_lora and not cfg.freeze_torso:
         raise ValueError(f"init_from {cfg.init_from}: the checkpoint has no LoRA adapter to train "
                          "on; set freeze_torso: true to train its head alone")
