@@ -173,7 +173,11 @@ python -m training.evaluate eval work/models/e4b --data work/eval/eval.jsonl --l
 It fits on the `calib` half; `eval` scores the `test` half.
 
 Write `work/baselines.md`: one row per candidate, with accuracy (and its 95% interval), ECE, the
-share of answers at confidence ≥ 0.9 and their accuracy, latency, and memory.
+share of answers at confidence ≥ 0.9 and their accuracy, latency, and memory. The first row is
+always the majority-class baseline: per decision, the share of the test half whose label is the
+most common label. It costs nothing to compute. A model below it has learned nothing useful for
+that decision, however high its accuracy looks: 29% on a 10-way choice is below a 30% majority
+class.
 
 ## Phase 4. Decide the customization tier
 

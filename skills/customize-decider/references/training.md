@@ -115,7 +115,7 @@ reverse_score_prob: 0.5
 seed: 0
 output_dir: "work/ckpt/s0"
 log_every: 20
-eval_every: 500
+eval_every: 500           # set to about steps / 5 after the smoke run
 ```
 
 No teacher file: the user's rows have gold labels, and a teacher file attaches to rows by
@@ -130,15 +130,34 @@ sed -e 's/^log_every: .*/log_every: 2/' work/train.yaml > work/train-smoke.yaml
 python -m training.train --config work/train-smoke.yaml --output-dir work/ckpt/smoke --max-steps 20
 ```
 
-Check the printed lines:
+Check the printed lines. Stop at the first one that fails, and do not start the full runs:
 
-- `trainable N / M`: a small share (LoRA plus the head), not 0 and not 100%. From a released
-  Qwen3.5 2B soup it is 53.6M of 1.94B (2.8%).
+- `continuing from <checkpoint>`: training starts from the released model. If the run prints
+  only `loading base model …`, it is not fine-tuning the release; check `init_from`.
+- `trainable N / M (P%)`: P must be at least 1%. From a released Qwen3.5 2B soup it is 53.6M of
+  1.94B (2.77%). Below 1% means the adapter is frozen and only a head trains: stop.
 - `train=T val=V`: the row counts you expect.
 - A loss line every 2 steps, and a loss that falls over the 20 steps.
-- The time per step (wall time / 20). With `--max-steps` the printed step count is 20, so compute
-  the full run: steps ≈ T / (micro_batch_size × grad_accum) × epochs. Full time ≈ steps × time
-  per step. Give the user that time and its cost before the full runs.
+
+Then estimate the full run, and give the user the time and its cost before the full runs:
+
+- Steps: with `--max-steps` the printed step count is 20, so compute
+  steps ≈ T / (micro_batch_size × grad_accum) × epochs.
+- Training time ≈ steps / the `step/s` printed on the last smoke loss line. Do not use the smoke
+  run's wall time / 20: it includes fixed costs that do not grow with the steps.
+- Fixed cost per run: the model load, and with `precompute_frozen_kl` the
+  `frozen-KL reference for N micro-batches in S s` line. The precompute covers every training
+  row, but do not scale the smoke run's line linearly (S × (T / micro_batch_size) / N): the
+  smoke run's precompute carries start-up overhead. In the measured example below, linear
+  scaling predicted 22 min and the run took 9. Report it to the user as a fixed cost of a few
+  minutes to tens of minutes per seed, and add it once per seed.
+- Set `eval_every` to about steps / 5 in `work/train.yaml`, so that the `eval @ <step>` lines of
+  "Monitoring" appear during the run. With the template's 500, a run under 500 steps prints only
+  the final evaluation.
+
+Measured example, 2B soup on one L4: 432 steps at 0.22 to 0.23 step/s, 31 min of training,
+plus about 9 min of frozen-KL precompute: 41 min per seed. The smoke run's wall time / 20 would
+have predicted 82 min.
 
 ## Three seeds
 
