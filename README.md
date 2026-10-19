@@ -372,13 +372,18 @@ the example's [README](examples/strands/README.md) for setup and the walk-throug
 
 ## Customizing for your decisions
 
-[`skills/customize-decider/`](skills/customize-decider/SKILL.md) is a skill for a coding agent
-(Claude Code, or any agent that reads a `SKILL.md`). It guides you from a decision in your
-application to a model measured on your own data: the task and its questions, an evaluation set,
-scores of every released model, the decision whether to train, the training data, the run and
-its monitoring, calibration, and the comparison with the released model. To use it with Claude
-Code, copy the folder to `.claude/skills/` in your project or to `~/.claude/skills/`, then ask
-the agent to evaluate Strands Decider on your task.
+[`skills/customize-decider/`](skills/customize-decider/SKILL.md) is a skill for an AI agent.
+It guides you from a decision in your application to a model measured on your own data: the task
+and its questions, an evaluation set, scores of every released model, the decision whether to
+train, the training data, the run and its monitoring, calibration, and the comparison with the
+released model.
+
+The skill is plain Markdown: a `SKILL.md` with a short front matter, and reference files that it
+loads one phase at a time. It works with any agent that can read files and run shell commands, such
+as an agent built with the [Strands Agents SDK](https://github.com/strands-agents/sdk-python) or
+a coding CLI. If your agent supports skills, install the folder where it looks for skills. If not,
+tell the agent to read `skills/customize-decider/SKILL.md` and follow it. Then ask it to evaluate
+Strands Decider on your task.
 
 ## Training
 
