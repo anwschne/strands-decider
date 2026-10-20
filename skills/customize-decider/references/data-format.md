@@ -57,6 +57,7 @@ tokens left"). Save as `work/check_rows.py` and run it from the checkout root wi
 
 ```python
 """python work/check_rows.py FILE BASE_MODEL [MAX_TOKENS]: fail on any row that would fail later."""
+
 import sys
 from collections import Counter
 

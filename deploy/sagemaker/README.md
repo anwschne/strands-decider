@@ -187,10 +187,14 @@ runtime = boto3.client("sagemaker-runtime")
 response = runtime.invoke_endpoint(
     EndpointName="strands-decider-2b-qwen3-5-v1-2610",
     ContentType="application/json",
-    Body=json.dumps({
-        "state": "Help! My payouts have been failing for 3 days!",
-        "questions": {"is_urgent": {"type": "noul", "instructions": "Does this convey urgency?"}},
-    }),
+    Body=json.dumps(
+        {
+            "state": "Help! My payouts have been failing for 3 days!",
+            "questions": {
+                "is_urgent": {"type": "noul", "instructions": "Does this convey urgency?"}
+            },
+        }
+    ),
 )
 print(json.loads(response["Body"].read())["answers"])
 ```

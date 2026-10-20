@@ -17,14 +17,16 @@ import sys
 BASES = {"Qwen/Qwen3.5-": "qwen3.5", "google/gemma-4-": "gemma4"}
 SIZE = r"E?\d+B(?:-A\d+B)?"
 YYMM = r"\d{2}(?:0[1-9]|1[0-2])"
-NAME = re.compile(rf"strands-decider-({SIZE})-({'|'.join(map(re.escape, BASES.values()))})"
-                  rf"-v([1-9]\d*)-({YYMM})")
+NAME = re.compile(
+    rf"strands-decider-({SIZE})-({'|'.join(map(re.escape, BASES.values()))})"
+    rf"-v([1-9]\d*)-({YYMM})"
+)
 
 
 def release_name(base_model: str, generation: int, yymm: str) -> str:
     """The public name of release `generation` on `base_model`'s family, released in `yymm`."""
     prefix = next((p for p in BASES if base_model.startswith(p)), "")
-    size = re.match(SIZE, base_model[len(prefix):]) if prefix else None
+    size = re.match(SIZE, base_model[len(prefix) :]) if prefix else None
     if not size:
         raise ValueError(f"{base_model}: not a base this naming knows ({', '.join(BASES)})")
     name = f"strands-decider-{size.group(0)}-{BASES[prefix]}-v{generation}-{yymm}"

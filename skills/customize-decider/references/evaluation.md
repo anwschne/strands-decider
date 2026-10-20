@@ -67,6 +67,7 @@ as `work/score.py` and run it from the checkout root with `PYTHONPATH=.`:
 
 ```python
 """Per-item results of one model on the test half: python work/score.py MODEL DATA OUT [DEVICE]."""
+
 import json
 import sys
 
@@ -78,15 +79,32 @@ model_path, data, out = sys.argv[1:4]
 device = sys.argv[4] if len(sys.argv) > 4 else "cuda"  # or "mps", "cpu"
 examples = partition_examples(list(read_jsonl(data)), "test")
 model = StrandsDeciderModel.load(model_path)
-logits, labels, slots, exs = collect_logits(model, examples, device=device, max_length=model.config.max_length)
-t = getattr(model.config, "temperature_by_kind", None) or model.config.temperature  # as `eval` applies it
-preds = predictions_from_logits(logits, labels, slots, exs, temperature=t,
-                                ordinal_smoothing=model.config.ordinal_smoothing)
+logits, labels, slots, exs = collect_logits(
+    model, examples, device=device, max_length=model.config.max_length
+)
+t = (
+    getattr(model.config, "temperature_by_kind", None) or model.config.temperature
+)  # as `eval` applies it
+preds = predictions_from_logits(
+    logits, labels, slots, exs, temperature=t, ordinal_smoothing=model.config.ordinal_smoothing
+)
 print(json.dumps(summarise(preds)["overall"]))
 with open(out, "w") as fh:
     for p in preds:
-        fh.write(json.dumps({"task": p.task, "kind": p.kind, "label": p.label, "pred": p.pred,
-                             "correct": p.correct, "confidence": p.confidence, "probs": p.probs}) + "\n")
+        fh.write(
+            json.dumps(
+                {
+                    "task": p.task,
+                    "kind": p.kind,
+                    "label": p.label,
+                    "pred": p.pred,
+                    "correct": p.correct,
+                    "confidence": p.confidence,
+                    "probs": p.probs,
+                }
+            )
+            + "\n"
+        )
 ```
 
 The script prepares the model as `serve` does on the device, like `eval`.
