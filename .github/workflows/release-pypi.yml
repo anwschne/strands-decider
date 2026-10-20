@@ -123,17 +123,16 @@ jobs:
     # Download a published checkpoint from the Hugging Face Hub and run
     # `strands-decider ask` against it, using the candidate wheel we just
     # built. Gates the publish step so a wheel that cannot actually run the
-    # released models never reaches PyPI. The test is marked `integration`
-    # and skipped from the default suite in tests.yml.
+    # released models never reaches PyPI.
     name: Download + run model against candidate wheel
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      # Override from the Actions dispatch dialog if you want to validate a
+      # newer release before promoting it. The default is the first v1 release.
+      MODEL: StrandsAgents/strands-decider-2B-qwen3.5-v1-2610
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          persist-credentials: false
-
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.12"
@@ -144,7 +143,7 @@ jobs:
           name: dist
           path: dist
 
-      - name: Install the candidate wheel and pytest
+      - name: Install the candidate wheel
         # Pin torch to the cpu wheel index for parity with the smoke test
         # above; the integration test runs with --device cpu.
         run: |
@@ -152,13 +151,26 @@ jobs:
           WHEEL=$(find "$GITHUB_WORKSPACE/dist" -maxdepth 1 -name '*.whl' -print -quit)
           python -m pip install --upgrade pip
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install "$WHEEL" pytest
+          python -m pip install "$WHEEL"
 
-      - name: Run download + ask integration test
-        # Runs the single test file so the step cannot accidentally pull in
-        # the rest of the suite (which expects the repo to be installed in
-        # editable mode via the dev extra).
-        run: pytest -m integration tests/test_cli_download_and_run.py -q
+      - name: Download the published model and answer a question
+        # Shells out to the installed `strands-decider` console script, pipes
+        # `ask --json` into a tiny python validator, and fails the job if the
+        # response is not a well-formed SystemOneResponse with a noul probability.
+        run: |
+          set -euo pipefail
+          strands-decider ask "$MODEL" \
+            --state "The sky is blue on a clear day." \
+            --noul "Is the statement true?" \
+            --device cpu --json > answer.json
+          python - <<'PY'
+          from strands_decider.schema import SystemOneResponse
+          r = SystemOneResponse.model_validate_json(open("answer.json").read())
+          [(name, ans)] = r.answers.items()
+          assert name == "noul_0" and ans.type == "noul", (name, ans)
+          assert 0.0 <= ans.noul <= 1.0, ans.noul
+          print(f"OK: P(true) = {ans.noul:.3f}")
+          PY
 
   publish:
     name: Publish to PyPI
