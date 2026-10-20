@@ -140,9 +140,10 @@ testpaths = ["tests", "training/tests"]
 # "training/tests" so test_variance (in training/tests) can `from test_checkpoint_load` /
 # `from test_hf_export` (in tests/) regardless of collection order.
 pythonpath = [".", "evaluation", "tests", "training/tests"]
-addopts = "-m 'not distributed'"
+addopts = "-m 'not distributed and not integration'"
 markers = [
     "distributed: launches torchrun worker processes (minutes); run with -m distributed",
+    "integration: downloads real artifacts from the Hugging Face Hub (slow, needs network); run with -m integration",
 ]
 
 [tool.coverage.report]
