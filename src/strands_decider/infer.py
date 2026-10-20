@@ -28,6 +28,7 @@ from typing import Any
 
 import torch
 
+from . import __version__
 from .modeling import StrandsDeciderModel, apply_temperature, masked_log_softmax, pool_last_token
 from .prompting import (
     RenderedQuestion,
@@ -58,7 +59,7 @@ class EngineConfig:
     device: str = "cuda"
     use_prefix_cache: bool = True
     max_batch: int = 32
-    model_name: str = "strands-decider-0.1.0"
+    model_name: str = f"strands-decider-{__version__}"
     # Largest share of the context window the question may claim before the state
     # starts being squeezed. Questions are normally short, so this rarely binds.
     max_question_fraction: float = 0.75

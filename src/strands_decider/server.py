@@ -15,6 +15,7 @@ import time
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
+from . import __version__
 from .infer import EngineConfig, SystemOneEngine, load_mlx
 from .modeling import StrandsDeciderModel
 from .schema import SystemOneRequest, SystemOneResponse
@@ -52,7 +53,7 @@ def create_app(
 
     app = FastAPI(
         title="strands-decider System One",
-        version="0.1.0",
+        version=__version__,
         description="Typed, calibrated answers. Choice, Score and Noul over one state.",
     )
 
