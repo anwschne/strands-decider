@@ -61,8 +61,12 @@ def create_app(
     resolved_name = model_name or os.path.basename(checkpoint.rstrip("/")) or checkpoint
 
     config = EngineConfig(
-        device=device, use_prefix_cache=use_prefix_cache, model_name=resolved_name,
-        strict_window=strict_window, max_batch=max_batch, max_batch_tokens=max_batch_tokens,
+        device=device,
+        use_prefix_cache=use_prefix_cache,
+        model_name=resolved_name,
+        strict_window=strict_window,
+        max_batch=max_batch,
+        max_batch_tokens=max_batch_tokens,
     )
     if vision:
         if device == "mlx":

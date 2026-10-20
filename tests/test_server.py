@@ -102,7 +102,9 @@ def test_health_identifies_checkpoint(monkeypatch):
     monkeypatch.setattr(server, "_engine", None)
     monkeypatch.setattr(server.StrandsDeciderModel, "load", lambda *a, **k: _StubModel())
     monkeypatch.setattr(server, "SystemOneEngine", lambda model, cfg: _StubEngine())
-    r = TestClient(server.create_app("checkpoints/strands-decider-test", device="cpu")).get("/health")
+    r = TestClient(server.create_app("checkpoints/strands-decider-test", device="cpu")).get(
+        "/health"
+    )
     assert r.status_code == 200
     assert r.json()["checkpoint"] == "checkpoints/strands-decider-test"
     assert r.json()["max_length"] == 512
@@ -222,7 +224,9 @@ def test_real_create_app_routes_work(monkeypatch):
     """
     from strands_decider import infer
 
-    monkeypatch.setattr(server.StrandsDeciderModel, "load", classmethod(lambda cls, *a, **k: _StubModel()))
+    monkeypatch.setattr(
+        server.StrandsDeciderModel, "load", classmethod(lambda cls, *a, **k: _StubModel())
+    )
     monkeypatch.setattr(server, "SystemOneEngine", lambda model, cfg: _StubEngine())
     monkeypatch.setattr(infer, "SystemOneEngine", lambda model, cfg=None: _StubEngine())
 
@@ -249,8 +253,13 @@ def test_real_create_app_routes_work(monkeypatch):
 
 def _racing_engine_cls():
     """Engine stub that records peak concurrent entries into evaluate()."""
-    state = {"enter": threading.Event(), "release": threading.Event(),
-             "inside": 0, "peak": 0, "lock": threading.Lock()}
+    state = {
+        "enter": threading.Event(),
+        "release": threading.Event(),
+        "inside": 0,
+        "peak": 0,
+        "lock": threading.Lock(),
+    }
 
     class _RacingEngine(_StubEngine):
         def evaluate(self, request):
@@ -271,8 +280,9 @@ def _racing_engine_cls():
 
 def _run_racing(monkeypatch, device):
     EngineCls, state = _racing_engine_cls()
-    monkeypatch.setattr(server.StrandsDeciderModel, "load",
-                        classmethod(lambda cls, *a, **k: _StubModel()))
+    monkeypatch.setattr(
+        server.StrandsDeciderModel, "load", classmethod(lambda cls, *a, **k: _StubModel())
+    )
     monkeypatch.setattr(server, "SystemOneEngine", lambda model, cfg: EngineCls())
 
     app = server.create_app("checkpoints/does-not-exist", device=device)
@@ -322,7 +332,9 @@ def test_too_many_options_returns_422(monkeypatch):
         def evaluate(self, request):
             raise ValueError("question has 30 options but this model has 24 slots")
 
-    monkeypatch.setattr(server.StrandsDeciderModel, "load", classmethod(lambda cls, *a, **k: _StubModel()))
+    monkeypatch.setattr(
+        server.StrandsDeciderModel, "load", classmethod(lambda cls, *a, **k: _StubModel())
+    )
     monkeypatch.setattr(server, "SystemOneEngine", lambda model, cfg: _NarrowEngine())
 
     app = server.create_app("checkpoints/does-not-exist", device="cpu")

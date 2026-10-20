@@ -3,6 +3,7 @@
 CPU only: test_ddp.py's tiny Qwen3 torso, saved to disk as the checkpoints' base model,
 and its test-trained tokenizer.
 """
+
 from __future__ import annotations
 
 import copy
@@ -41,23 +42,32 @@ def corpus(tmp_path_factory):
 
 @pytest.fixture(autouse=True)
 def saved_torso(corpus, monkeypatch):
-    monkeypatch.setattr(StrandsDeciderModel, "_load_torso",
-                        staticmethod(_load_saved_torso(str(corpus / "torso"))))
+    monkeypatch.setattr(
+        StrandsDeciderModel, "_load_torso", staticmethod(_load_saved_torso(str(corpus / "torso")))
+    )
 
 
 def _batch(model, corpus):
     rows = load_examples([str(corpus / "val.jsonl")])[:8]
-    coll = SystemOneCollator(model.tokenizer, CollatorConfig(max_length=2048, head_type="pointer"),
-                             train=False)
+    coll = SystemOneCollator(
+        model.tokenizer, CollatorConfig(max_length=2048, head_type="pointer"), train=False
+    )
     b = coll(rows)
-    return dict(input_ids=b["input_ids"], attention_mask=b["attention_mask"],
-                n_slots=b["n_slots"], opt_idx=b["opt_idx"])
+    return dict(
+        input_ids=b["input_ids"],
+        attention_mask=b["attention_mask"],
+        n_slots=b["n_slots"],
+        opt_idx=b["opt_idx"],
+    )
 
 
 def _state(model):
     """The head and adapter tensors, by name."""
-    return {n: p.detach().clone() for n, p in model.named_parameters()
-            if n.startswith("head.") or "lora_" in n}
+    return {
+        n: p.detach().clone()
+        for n, p in model.named_parameters()
+        if n.startswith("head.") or "lora_" in n
+    }
 
 
 def _train(corpus, out, monkeypatch, cfg=None, **over):
@@ -79,9 +89,18 @@ def _train(corpus, out, monkeypatch, cfg=None, **over):
         return real(model, cfg)
 
     monkeypatch.setattr(T, "_build_optimizer", build_optimizer)
-    base = dict(train_files=[str(corpus / "a.jsonl")], val_files=[str(corpus / "val.jsonl")],
-                init_from=str(corpus / "s0"), head_dropout=0.0, micro_batch_size=8,
-                grad_accum=2, max_steps=3, log_every=1, eval_every=0, output_dir=str(out))
+    base = dict(
+        train_files=[str(corpus / "a.jsonl")],
+        val_files=[str(corpus / "val.jsonl")],
+        init_from=str(corpus / "s0"),
+        head_dropout=0.0,
+        micro_batch_size=8,
+        grad_accum=2,
+        max_steps=3,
+        log_every=1,
+        eval_every=0,
+        output_dir=str(out),
+    )
     T.train(cfg or T.TrainConfig(**{**base, **over}))
     with open(out / "history.json", encoding="utf-8") as fh:
         return start, json.load(fh)
@@ -155,9 +174,16 @@ def test_a_soup_trains_on_and_its_fine_tunes_soup(corpus, tmp_path, monkeypatch)
 
 def test_anchored_to_the_checkpoint_itself(corpus, tmp_path, monkeypatch):
     """kl_frozen_reference = init_from: the first step starts at KL 0 from its reference."""
-    _, history = _train(corpus, tmp_path / "out", monkeypatch, kl_frozen_weight=0.3,
-                        precompute_frozen_kl=True, group_by_length=True, length_group_mega=2,
-                        kl_frozen_reference=str(corpus / "s0"))
+    _, history = _train(
+        corpus,
+        tmp_path / "out",
+        monkeypatch,
+        kl_frozen_weight=0.3,
+        precompute_frozen_kl=True,
+        group_by_length=True,
+        length_group_mega=2,
+        kl_frozen_reference=str(corpus / "s0"),
+    )
     kl = [h["kl"] for h in history if "kl" in h]
     assert len(kl) == 3 and kl[0] < 1e-9 < kl[2]  # step 1 is at lr 0 (warmup)
     # without a reference, the anchor is the base torso's readout: not 0 at the start
@@ -165,8 +191,9 @@ def test_anchored_to_the_checkpoint_itself(corpus, tmp_path, monkeypatch):
     assert history[0]["kl"] > 1e-3
 
 
-@pytest.mark.parametrize("over", [dict(pointer_dim=32), dict(base_model="Qwen/Qwen3.5-2B-Base"),
-                                  dict(head_hidden=8)])
+@pytest.mark.parametrize(
+    "over", [dict(pointer_dim=32), dict(base_model="Qwen/Qwen3.5-2B-Base"), dict(head_hidden=8)]
+)
 def test_an_architecture_other_than_the_checkpoint_is_refused(corpus, tmp_path, monkeypatch, over):
     with pytest.raises(ValueError, match=f"sets {next(iter(over))}=.*remove {next(iter(over))}"):
         _train(corpus, tmp_path, monkeypatch, **over)
@@ -174,16 +201,18 @@ def test_an_architecture_other_than_the_checkpoint_is_refused(corpus, tmp_path, 
 
 def test_every_conflict_is_named_in_one_error(corpus, tmp_path, monkeypatch):
     """A copied release recipe sets several of them: the error names all, not the first."""
-    with pytest.raises(ValueError,
-                       match=r"sets pointer_dim=32.*sets lora_r=4.*remove pointer_dim, lora_r from"):
+    with pytest.raises(
+        ValueError, match=r"sets pointer_dim=32.*sets lora_r=4.*remove pointer_dim, lora_r from"
+    ):
         _train(corpus, tmp_path, monkeypatch, pointer_dim=32, lora_r=4)
 
 
 def test_a_yaml_key_at_its_default_value_still_conflicts(corpus, tmp_path, monkeypatch):
     """A config copied from configs/train.yaml sets lora_r: 16, the default value."""
     path = tmp_path / "c.yaml"
-    path.write_text(f"init_from: {corpus / 's0'}\nlora_r: 16\n"
-                    f"train_files: [{corpus / 'a.jsonl'}]\n")
+    path.write_text(
+        f"init_from: {corpus / 's0'}\nlora_r: 16\ntrain_files: [{corpus / 'a.jsonl'}]\n"
+    )
     with pytest.raises(ValueError, match="sets lora_r=16, the checkpoint has 2"):
         _train(corpus, tmp_path, monkeypatch, cfg=T.TrainConfig.from_yaml(str(path)))
 

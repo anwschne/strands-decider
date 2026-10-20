@@ -39,8 +39,10 @@ DEFAULT_NUM_SLOTS = 24
 # -inf can produce NaNs if an entire row is masked by a malformed batch.
 MASK_VALUE = -1e4
 # Gemma 4 model types -> the multimodal class whose loader maps the text decoder's weights.
-GEMMA4_CLASSES = {"gemma4": "Gemma4ForConditionalGeneration",
-                  "gemma4_unified": "Gemma4UnifiedForConditionalGeneration"}
+GEMMA4_CLASSES = {
+    "gemma4": "Gemma4ForConditionalGeneration",
+    "gemma4_unified": "Gemma4UnifiedForConditionalGeneration",
+}
 
 
 def serving_attn_implementation(torso_cfg: Any) -> str | None:
@@ -103,8 +105,13 @@ class StrandsDeciderConfig:
     lora_dropout: float = 0.05
     lora_targets: list[str] = field(
         default_factory=lambda: [
-            "q_proj", "k_proj", "v_proj", "o_proj",
-            "gate_proj", "up_proj", "down_proj",
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
         ]
     )
     # Start every prompt with the tokenizer's BOS token even when its own post-processor
@@ -128,8 +135,9 @@ class StrandsDeciderConfig:
         # Written, empty, by the research builds the Gemma 4 releases were trained with: the
         # torso matrices a full-weight optimizer trained. Empty means LoRA, as here.
         if d.pop("full_weight_targets", []):
-            raise ValueError(f"{path}: full_weight_targets is set; this version loads LoRA "
-                             "checkpoints only")
+            raise ValueError(
+                f"{path}: full_weight_targets is set; this version loads LoRA checkpoints only"
+            )
         return cls(**d)
 
 
@@ -253,12 +261,12 @@ class PointerHead(nn.Module):
         self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
         self.q = nn.Linear(hidden_size, dim)
         self.k = nn.Linear(hidden_size, dim)
-        self.scale = dim ** -0.5
+        self.scale = dim**-0.5
 
     def forward(self, decide: torch.Tensor, options: torch.Tensor) -> torch.Tensor:
         """decide [B, d], options [B, K, d] -> logits [B, K]."""
-        d = self.q(self.dropout(self.norm(decide))).unsqueeze(-1)   # [B, dim, 1]
-        o = self.k(self.dropout(self.norm(options)))                # [B, K, dim]
+        d = self.q(self.dropout(self.norm(decide))).unsqueeze(-1)  # [B, dim, 1]
+        o = self.k(self.dropout(self.norm(options)))  # [B, K, dim]
         return (o @ d).squeeze(-1) * self.scale
 
 
@@ -479,7 +487,6 @@ class StrandsDeciderModel(nn.Module):
         )
         return out.last_hidden_state
 
-
     # ---- pretrained-readout hooks ------------------------------------------
     def slot_token_ids(self) -> dict[int, int]:
         """slot index -> token id of the option number the prompt shows for it.
@@ -593,8 +600,9 @@ class StrandsDeciderModel(nn.Module):
         else:
             logits = self.head(pooled)
 
-        logits = apply_temperature(logits, self.config.temperature
-                                   if temperature is None else temperature)
+        logits = apply_temperature(
+            logits, self.config.temperature if temperature is None else temperature
+        )
 
         log_probs = masked_log_softmax(logits, n_slots)
         out: dict[str, torch.Tensor] = {"logits": logits, "log_probs": log_probs}
