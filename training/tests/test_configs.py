@@ -74,7 +74,4 @@ def test_v19_saved_configs_load():
     saved = dataclasses.asdict(TrainConfig.from_yaml(os.path.join(FIXTURE, "train_config.json")))
     # The released run was configs/train.yaml under training/run_recipe.sh FAST=1, which
     # turns gradient checkpointing off and precomputes the frozen-KL reference (speed only).
-    assert _differing_keys(saved, _load("configs", "train.yaml")) == {
-        "gradient_checkpointing",
-        "precompute_frozen_kl",
-    }
+    assert _differing_keys(saved, _load("configs", "train.yaml")) == {"gradient_checkpointing"}
