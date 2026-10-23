@@ -74,8 +74,31 @@ class TrainConfig:
     # Rows it covers get teacher_weight * KL(teacher || student) on top of the label loss.
     teacher_file: str | None = None
     teacher_weight: float = 0.0
-    # Direction of the teacher KL term: "forward" = KL(teacher || student) (mass-covering,
-    # every run so far); "reverse" = KL(student || teacher) (mode-seeking).
+    # > 0 adds KL(reference || student) so training is anchored to a trained reference's
+    # own distribution. The reference is a trained checkpoint (`kl_frozen_reference`), not
+    # the base torso's option-number readout: the pointer head scores each option from its
+    # own hidden state, with no fixed slot grid for the LM's digit rows to project onto.
+    kl_frozen_weight: float = 0.0
+    # Trained checkpoint whose option distribution (temperature 1, no calibration) is the
+    # frozen-KL reference. It may use another tokenizer than the student (`_frozen_reference`
+    # re-renders every row with the reference's tokenizer, keeping the collator's option
+    # permutation). Required when `kl_frozen_weight > 0`.
+    kl_frozen_reference: str | None = None
+    # Rows trained ONLY by the KL term: no label loss, never in the validation split.
+    # For prompts with no gold answer -- e.g. changed questions, where the reference's
+    # own reading is the target (data/question_transforms.py).
+    kl_only_files: list[str] = field(default_factory=list)
+    # A KL-only row's KL weight. The label loss is weighted 1 per row, so 1.0 gives a
+    # KL-only row the same total weight as a labelled one.
+    kl_only_weight: float = 1.0
+    # Speed only: compute the frozen-KL reference for every training row in one no-grad
+    # pass before step 1 (`_frozen_reference`). Required when `kl_frozen_weight > 0` and
+    # `group_by_length` must be on so the batch order is known. Same numbers up to bf16
+    # batch-shape rounding as a per-step forward.
+    precompute_frozen_kl: bool = False
+    # Direction of both KL terms, the teacher's and the frozen anchor's: "forward" =
+    # KL(target || student) (mass-covering, every run so far); "reverse" = KL(student ||
+    # target) (mode-seeking).
     kl_direction: str = "forward"
     # Continue training a trained checkpoint (a local directory or a Hub id, e.g. a released
     # model) on this config's data: its adapter and its head, pointer or slot, souped or not,
@@ -330,6 +353,56 @@ def evaluate_loss(
     }
 
 
+def _frozen_reference(
+    model: StrandsDeciderModel,
+    examples: list[Example],
+    batches: list[list[int]],
+    coll_cfg: CollatorConfig,
+    device: str,
+    ref_model: StrandsDeciderModel,
+) -> torch.Tensor:
+    """`ref_model`'s log-probs for every row the run trains on: ref[micro-batch, row, slot].
+
+    A fresh collator with the training collator's seed walks the run's micro-batches in
+    training order, so each row is rendered exactly as training will render it. Each
+    rendered micro-batch goes through `ref_model` as it is, at temperature 1; columns past
+    a row's option count are -inf. The reference renders with its own tokenizer, so it may
+    have another than the student's (a Gemma student, a Qwen reference): a fresh collator
+    with the reference's tokenizer draws the same option permutation from its seed before
+    any tokenisation, so both see each row with the same options in the same slots.
+
+    Under torchrun rank m % world renders micro-batch m (the others only draw its
+    augmentations) and a sum over ranks assembles the table.
+    """
+    rank, _, world = distributed.env()
+    coll = SystemOneCollator(ref_model.tokenizer, coll_cfg, train=True)
+    width = max(max(examples[i].n_options for i in b) for b in batches)
+    ref = torch.zeros(len(batches), max(map(len, batches)), width, device=device)
+    for m, idx in enumerate(batches):
+        rows = [examples[i] for i in idx]
+        if m % world != rank:
+            coll.skip(rows)
+            continue
+        b = coll(rows)
+        with torch.no_grad():
+            lp = ref_model(
+                input_ids=b["input_ids"].to(device),
+                attention_mask=b["attention_mask"].to(device),
+                n_slots=b["n_slots"].to(device),
+                opt_idx=b["opt_idx"].to(device),
+                temperature=1.0,
+            )["log_probs"]
+        # -inf past each row's option count and past the batch's max K (padding slots
+        # the ref_model would not score). all_reduce adds zeros from the other ranks,
+        # which leaves both -inf and real values unchanged.
+        w = min(lp.shape[-1], ref.shape[-1])
+        ref[m, : len(rows)] = float("-inf")
+        ref[m, : len(rows), :w] = lp[:, :w]
+    if world > 1:
+        torch.distributed.all_reduce(ref)
+    return ref
+
+
 def _kl(
     target: torch.Tensor,
     student: torch.Tensor,
@@ -368,6 +441,10 @@ def train(cfg: TrainConfig) -> str:
     rank, _, world = distributed.env()
     if cfg.kl_direction not in ("forward", "reverse"):
         raise ValueError(f"kl_direction must be forward or reverse, not {cfg.kl_direction!r}")
+    if cfg.kl_frozen_weight > 0 and not cfg.kl_frozen_reference:
+        raise ValueError("kl_frozen_weight > 0 needs kl_frozen_reference (a trained checkpoint)")
+    if cfg.kl_frozen_reference and not (cfg.precompute_frozen_kl and cfg.kl_frozen_weight > 0):
+        raise ValueError("kl_frozen_reference needs kl_frozen_weight > 0 and precompute_frozen_kl")
     if cfg.host_embeddings and world > 1:  # DDP refuses a module with parameters on the CPU
         raise ValueError("host_embeddings is for one GPU; under torchrun keep the table on the GPU")
     torch.manual_seed(cfg.seed)
@@ -444,6 +521,18 @@ def train(cfg: TrainConfig) -> str:
             val_fraction=cfg.val_fraction,
             seed=cfg.seed if cfg.val_split_seed is None else cfg.val_split_seed,
         )
+    if cfg.kl_only_files:
+        if cfg.kl_frozen_weight <= 0:
+            raise ValueError("kl_only_files needs kl_frozen_weight > 0 to enable the KL term")
+        if any(ex.weight <= 0 for ex in train_examples):
+            raise ValueError("labelled rows must have weight > 0: weight 0 marks KL-only rows")
+        kl_rows = load_examples(cfg.kl_only_files)
+        for ex in kl_rows:
+            ex.weight = 0.0  # no label loss; the training loop reads 0 as "KL only"
+        # Added after the split, so none reaches validation, whose labels would be fake.
+        train_examples = train_examples + kl_rows
+        random.Random(cfg.seed).shuffle(train_examples)
+        print(f"[strands-decider] +{len(kl_rows):,} KL-only rows (weight {cfg.kl_only_weight})")
     print(f"[strands-decider] train={len(train_examples):,} val={len(val_examples):,}")
     if not train_examples:
         raise SystemExit("no training examples; run `python -m training.data build` first")
@@ -510,13 +599,42 @@ def train(cfg: TrainConfig) -> str:
         with open(os.path.join(cfg.output_dir, "train_config.json"), "w", encoding="utf-8") as fh:
             json.dump(asdict(cfg), fh, indent=2)
     if world > 1:  # each rank iterates its share of every step's rows instead
-        # 0 for kl_slots: the frozen-KL term is gone, so no row needs to be counted eligible.
+        # 0 for kl_slots: all rows are eligible under a pointer-head reference, so no
+        # eligibility counter is needed in StepSlices.
         train_loader = distributed.StepSlices(train_loader, 0, cfg.grad_accum, total_steps)
+
+    refs = None
+    if cfg.precompute_frozen_kl and cfg.kl_frozen_weight > 0:
+        if not cfg.group_by_length:
+            raise ValueError("precompute_frozen_kl needs group_by_length (a known batch order)")
+        run = [b for e in range(cfg.epochs) for b in sampler.batches(e)]
+        t_ref = time.time()
+        model.train()
+        ref_model = StrandsDeciderModel.load(
+            cfg.kl_frozen_reference, attn_implementation=cfg.attn_implementation
+        )
+        ref_model.to(device).eval()
+        own = ref_model.tokenizer.get_vocab() == model.tokenizer.get_vocab()
+        print(
+            f"[strands-decider] frozen-KL reference: {cfg.kl_frozen_reference}"
+            + ("" if own else " (its own tokenizer, not the student's)")
+        )
+        refs = _frozen_reference(
+            model, train_examples, run[: total_steps * cfg.grad_accum], coll_cfg, device, ref_model
+        )
+        del ref_model
+        if device == "cuda":
+            torch.cuda.empty_cache()
+        print(
+            f"[strands-decider] frozen-KL reference for {refs.shape[0]:,} micro-batches "
+            f"in {time.time() - t_ref:.0f} s"
+        )
 
     ema = _Ema(model, cfg.ema_decay) if cfg.ema_decay > 0 else None
     print(f"[strands-decider] {total_steps} optimizer steps (warmup {warmup})")
     model.train()
     step, micro, running, t0 = 0, 0, 0.0, time.time()
+    running_kl = 0.0
     running_tkl = 0.0
     history: list[dict[str, float]] = []
     done = False
@@ -540,6 +658,29 @@ def train(cfg: TrainConfig) -> str:
                 weights=batch.get("weights"),
             )
             step_loss = out["loss"] * part.weights
+            if cfg.kl_frozen_weight > 0:
+                m, a = (part.micro, part.start) if world > 1 else (micro, 0)
+                ref_lp = refs[m, a : a + batch["labels"].numel()]
+                stu = out["log_probs"]
+                # The reference is sized to the widest option count the run saw; a batch
+                # whose rows are narrower than that gets the padded columns trimmed off.
+                # Trimmed columns are past some row's option count and already -inf in
+                # both the reference and the student, so no probability mass is dropped.
+                ref_lp = ref_lp[:, : stu.shape[-1]]
+                # Masked slots are -inf in both; -inf - -inf is NaN, so restrict the sum
+                # to entries finite on both sides rather than patching the NaN afterwards.
+                valid = torch.isfinite(ref_lp) & torch.isfinite(stu)
+                per_row = _kl(ref_lp, stu, valid, cfg.kl_direction)
+                kl = per_row.mean() * part.kl
+                if cfg.kl_only_files:
+                    # KL-only rows (weight 0) carry their own KL weight; with none in the
+                    # batch this equals kl_frozen_weight * kl exactly.
+                    only = batch["weights"] == 0
+                    coef = torch.where(only, cfg.kl_only_weight, cfg.kl_frozen_weight)
+                    step_loss = step_loss + (coef * per_row).mean() * part.kl
+                else:
+                    step_loss = step_loss + cfg.kl_frozen_weight * kl
+                running_kl += float(kl)
             if (
                 cfg.teacher_weight > 0
                 and "has_teacher" in batch
@@ -572,8 +713,8 @@ def train(cfg: TrainConfig) -> str:
                 ema.update(step)
 
             if step % cfg.log_every == 0:
-                running, running_tkl = distributed.all_reduce(
-                    [running, running_tkl]
+                running, running_kl, running_tkl = distributed.all_reduce(
+                    [running, running_kl, running_tkl]
                 )  # each rank holds its slices' part
                 avg = running / (cfg.log_every * cfg.grad_accum)
                 rate = step / max(1e-6, time.time() - t0)
@@ -585,11 +726,14 @@ def train(cfg: TrainConfig) -> str:
                     f"{rate:.2f} step/s peak_mem {mem:.1f}GiB"
                 )
                 entry = {"step": step, "loss": avg}
+                if cfg.kl_frozen_weight > 0:
+                    entry["kl"] = running_kl / (cfg.log_every * cfg.grad_accum)
+                    print(f"[strands-decider]   kl {entry['kl']:.4f}")
                 if cfg.teacher_weight > 0:
                     entry["teacher_kl"] = running_tkl / (cfg.log_every * cfg.grad_accum)
                     print(f"[strands-decider]   teacher kl {entry['teacher_kl']:.4f}")
                 history.append(entry)
-                running = running_tkl = 0.0
+                running = running_kl = running_tkl = 0.0
 
             # Validation and saving run on rank 0 alone; every rank holds the same weights.
             if cfg.eval_every and step % cfg.eval_every == 0 and rank == 0:
