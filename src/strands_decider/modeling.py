@@ -68,8 +68,8 @@ class StrandsDeciderConfig:
     torch_dtype: str = "bfloat16"
     # Not read by this version (the pointer head is the only readout); kept on the config
     # so every export writes `head_type: "pointer"` into its JSON. Older strands-decider
-    # versions default a missing head_type to "slot" and crash loading a pointer export;
-    # out-of-tree readers (serving PRs) parse this field directly.
+    # versions default a missing head_type to "slot" and crash loading a pointer export,
+    # and out-of-tree readers may parse this field directly.
     head_type: str = "pointer"
     pointer_dim: int = 256
     # Populated after `python -m training.evaluate calibrate` runs; 1.0 is a no-op. `temperature` is the
