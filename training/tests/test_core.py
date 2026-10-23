@@ -910,6 +910,12 @@ def test_slot_era_head_type_is_rejected_by_config_loader(tmp_path):
     assert cfg.base_model == "x"
 
 
+def test_head_type_is_written_to_the_exported_config():
+    """Older strands-decider versions default a missing head_type to slot and crash on a
+    pointer export; out-of-tree readers (serving PRs) parse this field directly."""
+    assert json.loads(StrandsDeciderConfig(base_model="x").to_json())["head_type"] == "pointer"
+
+
 def test_collect_logits_masks_the_padded_columns():
     """A pointer head scores padded option slots from position 0, so in a mixed-width
     batch those columns hold real values. collect_logits must mask them: multistep_eval

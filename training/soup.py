@@ -25,6 +25,7 @@ import json
 import math
 import os
 import shutil
+from dataclasses import asdict
 
 import torch
 import typer
@@ -116,17 +117,19 @@ def soup(checkpoints: list[str], out: str, replace: bool = False) -> str:
         raise ValueError("no checkpoints")
     _check_paths(checkpoints, out, replace)
     n = len(checkpoints)
-    cfgs = [_json(config_path(c)) for c in checkpoints]
+    # from_json drops stale slot-era keys (num_slots, head_type="pointer", head_hidden,
+    # head_init, kl_frozen_weight) that pre-PR and v1-2610 pointer checkpoints still carry,
+    # and rejects head_type="slot" cleanly so a slot-era input stops here rather than
+    # halfway through, after soup has written an adapter file.
+    typed = [StrandsDeciderConfig.from_json(config_path(c)) for c in checkpoints]
+    cfgs = [asdict(c) for c in typed]
     recipe = [{k: v for k, v in c.items() if k not in FITTED | {"base_revision"}} for c in cfgs]
     if any(r != recipe[0] for r in recipe):
         raise ValueError(
             "the checkpoints' configs differ beyond their temperatures: not one recipe"
         )
     # The base revision is compared as the loader resolves it (config, else provenance.json).
-    revisions = {
-        base_revision(c, StrandsDeciderConfig(**cf))
-        for c, cf in zip(checkpoints, cfgs, strict=True)
-    }
+    revisions = {base_revision(c, t) for c, t in zip(checkpoints, typed, strict=True)}
     if len(revisions) > 1:
         raise ValueError(
             f"the checkpoints were trained on different base revisions: {sorted(map(str, revisions))}"

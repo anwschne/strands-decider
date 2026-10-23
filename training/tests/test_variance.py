@@ -148,6 +148,35 @@ def test_checkpoints_of_different_recipes_are_refused(ckpts, tmp_path):
         soup(ckpts, str(tmp_path / "soup"))
 
 
+def test_soup_accepts_stale_slot_era_keys_in_the_input_configs(ckpts, tmp_path):
+    """Pre-PR and v1-2610 configs still carry num_slots, head_type: 'pointer', head_hidden,
+    head_init, kl_frozen_weight. Soup drops them cleanly through from_json and does not
+    propagate them to the output config."""
+    for c in ckpts:
+        p = f"{c}/strands_decider_config.json"
+        cfg = json.load(open(p))
+        cfg.update(
+            {"num_slots": 24, "head_hidden": 0, "head_init": "random", "kl_frozen_weight": 0.3}
+        )
+        json.dump(cfg, open(p, "w"))
+    out = tmp_path / "soup"
+    soup(ckpts, str(out))
+    souped = json.load(open(out / "strands_decider_config.json"))
+    for k in ("num_slots", "head_hidden", "head_init", "kl_frozen_weight"):
+        assert k not in souped, k
+
+
+def test_soup_rejects_a_slot_head_input_config(ckpts, tmp_path):
+    """A slot-era checkpoint fails the config read before any adapter file is written."""
+    p = f"{ckpts[0]}/strands_decider_config.json"
+    cfg = json.load(open(p))
+    json.dump({**cfg, "head_type": "slot"}, open(p, "w"))
+    out = tmp_path / "soup"
+    with pytest.raises(ValueError, match="pointer-head"):
+        soup(ckpts, str(out))
+    assert not out.exists()
+
+
 def _tree(path):
     return {
         str(p.relative_to(path)): p.read_bytes() for p in sorted(path.rglob("*")) if p.is_file()

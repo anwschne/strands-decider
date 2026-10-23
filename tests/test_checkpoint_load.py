@@ -89,6 +89,33 @@ def test_a_missing_head_file_is_refused_before_the_torso_loads(ckpt):
     assert loads == []
 
 
+def test_load_head_state_falls_back_to_slot_head_pt_with_warning(tmp_path):
+    """A local pointer checkpoint saved before the slot-head removal wrote weights to
+    slot_head.pt. load_head_state reads it with a UserWarning and weights_only=True."""
+    import warnings
+
+    from strands_decider.modeling import load_head_state
+
+    torch.save({"q.weight": torch.randn(4, 8)}, tmp_path / "slot_head.pt")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        state = load_head_state(str(tmp_path))
+    assert "q.weight" in state
+    assert any("slot_head.pt" in str(w.message) for w in caught)
+
+
+def test_load_head_state_prefers_head_safetensors_when_both_exist(tmp_path):
+    """A directory holding both files reads head.safetensors; the fallback is for the
+    pre-pointer-only shape where only slot_head.pt is on disk."""
+    from safetensors.torch import save_file
+
+    from strands_decider.modeling import load_head_state
+
+    save_file({"q.weight": torch.zeros(4, 8)}, str(tmp_path / "head.safetensors"))
+    torch.save({"q.weight": torch.ones(4, 8)}, tmp_path / "slot_head.pt")
+    assert torch.equal(load_head_state(str(tmp_path))["q.weight"], torch.zeros(4, 8))
+
+
 def test_a_hub_repo_id_loads_from_the_downloaded_snapshot(ckpt, monkeypatch):
     """A path that is not a local directory is a Hub repo id: snapshot_download gives the
     folder. No network here: the download is stubbed, and a failure names both readings."""

@@ -153,14 +153,26 @@ class TrainConfig:
 
         with open(path, encoding="utf-8") as fh:
             raw = yaml.safe_load(fh) or {}
-        # Silently drop keys the current dataclass no longer knows (slot-era fields such
-        # as num_slots, head_type, kl_frozen_weight). Keeps old configs loadable so a
-        # retrain of a historical recipe fails on substance, not on removed names.
+        # Model-architecture fields the slot head owned, which the v1-2610 and earlier YAMLs
+        # still carry. Drop them silently so a historical recipe retrains with the current
+        # pointer-only architecture; a typo in any other key still raises.
         known = set(cls.__dataclass_fields__)
+        for k, v in raw.items():
+            if k == "head_type" and v != "pointer":
+                raise ValueError(
+                    f"{path}: head_type={v!r}; this version trains pointer-head checkpoints only"
+                )
+            if k not in known and k not in RETIRED_YAML_KEYS:
+                raise ValueError(f"{path}: unknown config key {k!r}")
         raw = {k: v for k, v in raw.items() if k in known}
         cfg = cls(**raw)
         cfg.yaml_keys = frozenset(raw)  # type: ignore[attr-defined]  # what _given reads
         return cfg
+
+
+# Slot-era TrainConfig keys the current dataclass no longer carries. Dropped silently by
+# from_yaml so a published recipe still parses; a typo in any other key raises.
+RETIRED_YAML_KEYS = frozenset({"num_slots", "head_type", "head_hidden", "head_init"})
 
 
 # The fields of a TrainConfig that a checkpoint fixes: with init_from they are the checkpoint's.

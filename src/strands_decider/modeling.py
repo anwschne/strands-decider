@@ -66,6 +66,11 @@ class StrandsDeciderConfig:
     # at all, so this is where the context curve goes flat.
     max_length: int = 3072
     torch_dtype: str = "bfloat16"
+    # Not read by this version (the pointer head is the only readout); kept on the config
+    # so every export writes `head_type: "pointer"` into its JSON. Older strands-decider
+    # versions default a missing head_type to "slot" and crash loading a pointer export;
+    # out-of-tree readers (serving PRs) parse this field directly.
+    head_type: str = "pointer"
     pointer_dim: int = 256
     # Populated after `python -m training.evaluate calibrate` runs; 1.0 is a no-op. `temperature` is the
     # fallback; `temperature_by_kind` overrides it per primitive where fitted.
@@ -600,12 +605,27 @@ def checkpoint_dir(path: str, revision: str | None = None) -> str:
 
 
 def load_head_state(path: str) -> dict[str, torch.Tensor]:
-    """The head weights: `head.safetensors`. Written by `save_pretrained` and by
-    the Hugging Face export. Raises FileNotFoundError if missing."""
+    """The head weights: `head.safetensors`, written by `save_pretrained` and by the
+    Hugging Face export. For local checkpoints trained before the slot-head removal
+    `slot_head.pt` is read as a fallback (pointer heads were pickled under that filename
+    too). Raises FileNotFoundError if neither is present."""
     st = os.path.join(path, "head.safetensors")
-    if not os.path.exists(st):
-        raise FileNotFoundError(f"{st}: head weights file missing")
-    from safetensors.torch import load_file
+    if os.path.exists(st):
+        from safetensors.torch import load_file
 
-    loaded: dict[str, torch.Tensor] = load_file(st)
-    return loaded
+        loaded: dict[str, torch.Tensor] = load_file(st)
+        return loaded
+    pt = os.path.join(path, "slot_head.pt")
+    if os.path.exists(pt):
+        import warnings
+
+        warnings.warn(
+            f"{pt}: loading from the pre-pointer pickle filename. Re-save with "
+            "`model.save_pretrained(path)` to write head.safetensors.",
+            UserWarning,
+            stacklevel=2,
+        )
+        # weights_only=True refuses pickle code; it has been the torch default since 2.6.
+        state: dict[str, torch.Tensor] = torch.load(pt, map_location="cpu", weights_only=True)
+        return state
+    raise FileNotFoundError(f"{path}: neither head.safetensors nor slot_head.pt is present")
