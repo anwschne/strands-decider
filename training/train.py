@@ -622,6 +622,7 @@ def train(cfg: TrainConfig) -> str:
         run = [b for e in range(cfg.epochs) for b in sampler.batches(e)]
         t_ref = time.time()
         model.train()
+        assert cfg.kl_frozen_reference is not None  # enforced by _validate above
         ref_model = StrandsDeciderModel.load(
             cfg.kl_frozen_reference, attn_implementation=cfg.attn_implementation
         )
@@ -671,6 +672,7 @@ def train(cfg: TrainConfig) -> str:
             )
             step_loss = out["loss"] * part.weights
             if cfg.kl_frozen_weight > 0:
+                assert refs is not None  # populated above when kl_frozen_weight > 0
                 m, a = (part.micro, part.start) if world > 1 else (micro, 0)
                 ref_lp = refs[m, a : a + batch["labels"].numel()]
                 stu = out["log_probs"]
